@@ -8,8 +8,8 @@ import subprocess
 import sys
 import unittest
 from fnmatch import fnmatch
-from typing import Any
 from pathlib import Path
+from typing import Any
 
 ROOT = Path(__file__).resolve().parents[1]
 DOMAIN = "hass_codex_usage"
@@ -36,6 +36,18 @@ MANIFEST_REQUIRED_KEYS = {
     "name",
     "requirements",
     "version",
+}
+HACS_ALLOWED_KEYS = {
+    "content_in_root",
+    "country",
+    "filename",
+    "hacs",
+    "hide_default_branch",
+    "homeassistant",
+    "name",
+    "persistent_directory",
+    "render_readme",
+    "zip_release",
 }
 SENSITIVE_TRACKED_PATTERNS = (
     ".codex/*",
@@ -131,8 +143,17 @@ def check_repository_metadata(json_data: dict[Path, dict[str, Any]]) -> list[str
 
     hacs_path = ROOT / "hacs.json"
     hacs = json_data.get(hacs_path, {})
-    if "sensor" not in hacs.get("domains", []):
-        failures.append("hacs.json domains must include sensor")
+    unknown_hacs_keys = sorted(set(hacs) - HACS_ALLOWED_KEYS)
+    if unknown_hacs_keys:
+        failures.append(f"hacs.json unsupported keys: {', '.join(unknown_hacs_keys)}")
+    if not hacs.get("name"):
+        failures.append("hacs.json name must be set")
+    if hacs.get("render_readme") is not True:
+        failures.append("hacs.json render_readme must be true unless info.md is added")
+
+    brand_icon = INTEGRATION_DIR / "brand" / "icon.png"
+    if not brand_icon.is_file():
+        failures.append("HACS brand icon is missing")
 
     tracked_files = subprocess.run(
         ["git", "ls-files"],

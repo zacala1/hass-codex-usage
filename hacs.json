@@ -1,7 +1,5 @@
 {
   "name": "Codex Usage",
   "render_readme": true,
-  "domains": ["sensor"],
-  "homeassistant": "2025.1.0",
-  "iot_class": "cloud_polling"
+  "homeassistant": "2025.1.0"
 }

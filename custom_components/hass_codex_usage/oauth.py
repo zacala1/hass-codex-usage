@@ -163,7 +163,11 @@ async def _async_request_token(
 ) -> dict[str, Any]:
     """Request a token from the OAuth token endpoint."""
     try:
-        async with session.post(OPENAI_TOKEN_URL, data=payload) as response:
+        async with session.post(
+            OPENAI_TOKEN_URL,
+            data=payload,
+            headers={"Content-Type": "application/x-www-form-urlencoded"},
+        ) as response:
             if response.status in {400, 401, 403}:
                 raise CodexUsageAuthError("OpenAI rejected the OAuth request")
             response.raise_for_status()

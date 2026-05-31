@@ -151,9 +151,14 @@ class CodexUsageCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         if not isinstance(data, dict):
             raise CodexUsageConnectionError("Codex usage response was not an object")
 
-        data["_api_endpoint"] = usage_url.removeprefix("https://")
         token_data = self.entry.data.get(CONF_TOKEN, {})
+        account_email = data.get("account_email")
         if isinstance(token_data, dict) and token_data.get("account_email"):
-            data.setdefault("account_email", token_data["account_email"])
+            account_email = token_data["account_email"]
+
+        data["_meta"] = {
+            "api_endpoint": usage_url.removeprefix("https://"),
+            "account_email": account_email,
+        }
 
         return data

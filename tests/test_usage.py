@@ -25,6 +25,10 @@ class UsageParsingTest(unittest.TestCase):
     def test_planned_schema(self) -> None:
         """Parse the v0.1 planned response shape."""
         payload = {
+            "_meta": {
+                "account_email": "user@example.com",
+                "api_endpoint": "chatgpt.com/backend-api/api/codex/usage",
+            },
             "plan": "plus",
             "rate_limits": {
                 "primary_window": {

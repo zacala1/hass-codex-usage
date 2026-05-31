@@ -7,35 +7,64 @@ import json
 import subprocess
 import sys
 import unittest
+from fnmatch import fnmatch
+from typing import Any
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
+DOMAIN = "hass_codex_usage"
+INTEGRATION_DIR = ROOT / "custom_components" / DOMAIN
 JSON_FILES = (
     ROOT / "hacs.json",
-    ROOT / "custom_components" / "hass_codex_usage" / "manifest.json",
-    ROOT / "custom_components" / "hass_codex_usage" / "strings.json",
-    ROOT / "custom_components" / "hass_codex_usage" / "translations" / "en.json",
-    ROOT / "custom_components" / "hass_codex_usage" / "translations" / "ko.json",
+    INTEGRATION_DIR / "manifest.json",
+    INTEGRATION_DIR / "strings.json",
+    INTEGRATION_DIR / "translations" / "en.json",
+    INTEGRATION_DIR / "translations" / "ko.json",
 )
 COMPILE_PATHS = (
     ROOT / "custom_components",
     ROOT / "scripts",
     ROOT / "tests",
 )
+MANIFEST_REQUIRED_KEYS = {
+    "codeowners",
+    "config_flow",
+    "documentation",
+    "domain",
+    "iot_class",
+    "issue_tracker",
+    "name",
+    "requirements",
+    "version",
+}
+SENSITIVE_TRACKED_PATTERNS = (
+    ".codex/*",
+    ".claude/*",
+    "*.jsonl",
+    "*auth.json",
+    "*token*.json",
+    ".storage/*",
+)
 
 
 def main() -> int:
     """Run validation checks."""
     failures: list[str] = []
+    json_data: dict[Path, dict[str, Any]] = {}
 
     print("Checking JSON files...")
     for path in JSON_FILES:
         try:
-            json.loads(path.read_text(encoding="utf-8"))
+            parsed = json.loads(path.read_text(encoding="utf-8"))
         except Exception as err:  # noqa: BLE001
             failures.append(f"{path.relative_to(ROOT)}: {err}")
         else:
+            if isinstance(parsed, dict):
+                json_data[path] = parsed
             print(f"  OK {path.relative_to(ROOT)}")
+
+    print("Checking repository metadata...")
+    failures.extend(check_repository_metadata(json_data))
 
     print("Running unit tests...")
     suite = unittest.defaultTestLoader.discover(str(ROOT / "tests"))
@@ -71,6 +100,56 @@ def main() -> int:
 
     print("Validation passed.")
     return 0
+
+
+def check_repository_metadata(json_data: dict[Path, dict[str, Any]]) -> list[str]:
+    """Validate lightweight repository metadata invariants."""
+    failures: list[str] = []
+
+    custom_components_dir = ROOT / "custom_components"
+    integration_dirs = [
+        path
+        for path in custom_components_dir.iterdir()
+        if path.is_dir() and not path.name.startswith("__")
+    ]
+    if [path.name for path in integration_dirs] != [DOMAIN]:
+        failures.append("custom_components must contain only hass_codex_usage")
+
+    manifest_path = INTEGRATION_DIR / "manifest.json"
+    manifest = json_data.get(manifest_path, {})
+    missing_manifest_keys = sorted(MANIFEST_REQUIRED_KEYS - manifest.keys())
+    if missing_manifest_keys:
+        failures.append(f"manifest missing keys: {', '.join(missing_manifest_keys)}")
+    if manifest.get("domain") != DOMAIN:
+        failures.append(f"manifest domain must be {DOMAIN}")
+    if manifest.get("config_flow") is not True:
+        failures.append("manifest config_flow must be true")
+    if manifest.get("requirements") != []:
+        failures.append("manifest requirements must remain empty")
+    if not manifest.get("issue_tracker"):
+        failures.append("manifest issue_tracker must be set")
+
+    hacs_path = ROOT / "hacs.json"
+    hacs = json_data.get(hacs_path, {})
+    if "sensor" not in hacs.get("domains", []):
+        failures.append("hacs.json domains must include sensor")
+
+    tracked_files = subprocess.run(
+        ["git", "ls-files"],
+        cwd=ROOT,
+        check=False,
+        text=True,
+        capture_output=True,
+    )
+    if tracked_files.returncode:
+        failures.append("git ls-files failed")
+    else:
+        for tracked in tracked_files.stdout.splitlines():
+            normalized = tracked.replace("\\", "/")
+            if any(fnmatch(normalized, pattern) for pattern in SENSITIVE_TRACKED_PATTERNS):
+                failures.append(f"sensitive file is tracked: {tracked}")
+
+    return failures
 
 
 if __name__ == "__main__":

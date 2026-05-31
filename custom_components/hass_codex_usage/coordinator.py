@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import logging
 from datetime import datetime, timedelta
+from email.utils import parsedate_to_datetime
 from typing import Any
 
 from aiohttp import ClientError, ClientResponseError
@@ -32,6 +33,23 @@ from .oauth import (
 )
 
 _LOGGER = logging.getLogger(__name__)
+
+
+def _retry_after_seconds(value: str | None) -> float | None:
+    """Parse a Retry-After header."""
+    if not value:
+        return None
+    try:
+        return max(0.0, float(value))
+    except ValueError:
+        pass
+
+    try:
+        retry_at = parsedate_to_datetime(value)
+    except (TypeError, ValueError):
+        return None
+
+    return max(0.0, (retry_at - dt_util.utcnow()).total_seconds())
 
 
 class CodexUsageCoordinator(DataUpdateCoordinator[dict[str, Any]]):
@@ -104,8 +122,11 @@ class CodexUsageCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                     if response.status == 401:
                         raise CodexUsageAuthError("Codex usage token is invalid")
                     if response.status == 429:
-                        raise CodexUsageConnectionError(
-                            "Codex usage endpoint is rate limited"
+                        raise UpdateFailed(
+                            "Codex usage endpoint is rate limited",
+                            retry_after=_retry_after_seconds(
+                                response.headers.get("Retry-After")
+                            ),
                         )
                     if response.status == 404 and index < len(CODEX_USAGE_URLS) - 1:
                         last_error = CodexUsageConnectionError(

@@ -165,9 +165,10 @@ class CodexUsageSensor(CoordinatorEntity[CodexUsageCoordinator], SensorEntity):
     def extra_state_attributes(self) -> dict[str, Any]:
         """Return sensor attributes."""
         data = self.coordinator.data or {}
+        last_updated = self.coordinator.last_success_time
         return {
             "account_email": data.get("account_email"),
             "integration_version": VERSION,
-            "last_updated": self.coordinator.last_success_time,
+            "last_updated": last_updated.isoformat() if last_updated else None,
             "api_endpoint": data.get("_api_endpoint", CODEX_USAGE_ENDPOINT_LABEL),
         }

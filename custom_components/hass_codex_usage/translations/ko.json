@@ -10,6 +10,10 @@
           "name": "이름",
           "update_interval": "업데이트 주기(초)"
         }
+      },
+      "reauth_confirm": {
+        "title": "Codex 사용량 재인증",
+        "description": "Codex 사용량 통합에서 ChatGPT 계정 재인증이 필요합니다."
       }
     },
     "error": {
@@ -18,7 +22,8 @@
       "unknown": "예상하지 못한 오류"
     },
     "abort": {
-      "already_configured": "이 ChatGPT 계정은 이미 설정되어 있습니다."
+      "already_configured": "이 ChatGPT 계정은 이미 설정되어 있습니다.",
+      "reauth_successful": "재인증이 완료되었습니다."
     }
   },
   "options": {

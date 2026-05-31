@@ -74,6 +74,7 @@ The default polling interval is 300 seconds. The options flow allows values from
 Basic local checks:
 
 ```bash
+python -m unittest discover -s tests
 python -m compileall custom_components
 ```
 

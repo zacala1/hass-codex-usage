@@ -4,7 +4,6 @@ from __future__ import annotations
 
 from collections.abc import Callable
 from dataclasses import dataclass
-from datetime import datetime
 from typing import Any
 
 from homeassistant.components.sensor import (
@@ -19,10 +18,19 @@ from homeassistant.core import HomeAssistant
 from homeassistant.helpers import device_registry as dr
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
-from homeassistant.util import dt as dt_util
 
 from .const import CODEX_USAGE_ENDPOINT_LABEL, DOMAIN, VERSION
 from .coordinator import CodexUsageCoordinator
+from .usage import (
+    CODE_REVIEW_RESET_TIME,
+    CODE_REVIEW_USAGE,
+    PLAN,
+    SESSION_RESET_TIME,
+    SESSION_USAGE,
+    WEEKLY_RESET_TIME,
+    WEEKLY_USAGE,
+    sensor_value,
+)
 
 
 @dataclass(frozen=True, kw_only=True)
@@ -32,87 +40,50 @@ class CodexUsageSensorDescription(SensorEntityDescription):
     value_fn: Callable[[dict[str, Any]], Any]
 
 
-def _nested_value(data: dict[str, Any], *path: str) -> Any:
-    """Return a nested value from a dictionary."""
-    current: Any = data
-    for key in path:
-        if not isinstance(current, dict):
-            return None
-        current = current.get(key)
-    return current
-
-
-def _rate_limit_value(data: dict[str, Any], window: str, field: str) -> Any:
-    """Read a rate-limit field from the expected Codex usage schema."""
-    return _nested_value(data, "rate_limits", window, field)
-
-
-def _parse_timestamp(value: Any) -> datetime | None:
-    """Parse an API timestamp into a Home Assistant datetime value."""
-    if not isinstance(value, str):
-        return None
-    parsed = dt_util.parse_datetime(value)
-    if parsed is None:
-        return None
-    return parsed if parsed.tzinfo else dt_util.as_utc(parsed)
-
-
 SENSOR_DESCRIPTIONS: tuple[CodexUsageSensorDescription, ...] = (
     CodexUsageSensorDescription(
-        key="session_usage",
+        key=SESSION_USAGE,
         translation_key="session_usage",
         native_unit_of_measurement=PERCENTAGE,
         state_class=SensorStateClass.MEASUREMENT,
-        value_fn=lambda data: _rate_limit_value(
-            data, "primary_window", "used_percent"
-        ),
+        value_fn=lambda data: sensor_value(data, SESSION_USAGE),
     ),
     CodexUsageSensorDescription(
-        key="session_reset_time",
+        key=SESSION_RESET_TIME,
         translation_key="session_reset_time",
         device_class=SensorDeviceClass.TIMESTAMP,
-        value_fn=lambda data: _parse_timestamp(
-            _rate_limit_value(data, "primary_window", "reset_at")
-        ),
+        value_fn=lambda data: sensor_value(data, SESSION_RESET_TIME),
     ),
     CodexUsageSensorDescription(
-        key="weekly_usage",
+        key=WEEKLY_USAGE,
         translation_key="weekly_usage",
         native_unit_of_measurement=PERCENTAGE,
         state_class=SensorStateClass.MEASUREMENT,
-        value_fn=lambda data: _rate_limit_value(
-            data, "secondary_window", "used_percent"
-        ),
+        value_fn=lambda data: sensor_value(data, WEEKLY_USAGE),
     ),
     CodexUsageSensorDescription(
-        key="weekly_reset_time",
+        key=WEEKLY_RESET_TIME,
         translation_key="weekly_reset_time",
         device_class=SensorDeviceClass.TIMESTAMP,
-        value_fn=lambda data: _parse_timestamp(
-            _rate_limit_value(data, "secondary_window", "reset_at")
-        ),
+        value_fn=lambda data: sensor_value(data, WEEKLY_RESET_TIME),
     ),
     CodexUsageSensorDescription(
-        key="plan",
+        key=PLAN,
         translation_key="plan",
-        value_fn=lambda data: data.get("plan"),
+        value_fn=lambda data: sensor_value(data, PLAN),
     ),
     CodexUsageSensorDescription(
-        key="code_review_usage",
+        key=CODE_REVIEW_USAGE,
         translation_key="code_review_usage",
         native_unit_of_measurement=PERCENTAGE,
         state_class=SensorStateClass.MEASUREMENT,
-        value_fn=lambda data: _rate_limit_value(
-            data, "code_review_rate_limit", "used_percent"
-        ),
+        value_fn=lambda data: sensor_value(data, CODE_REVIEW_USAGE),
     ),
     CodexUsageSensorDescription(
-        key="code_review_reset_time",
+        key=CODE_REVIEW_RESET_TIME,
         translation_key="code_review_reset_time",
         device_class=SensorDeviceClass.TIMESTAMP,
-        value_fn=lambda data: _parse_timestamp(
-            _rate_limit_value(data, "code_review_rate_limit", "reset_at")
-        ),
+        value_fn=lambda data: sensor_value(data, CODE_REVIEW_RESET_TIME),
     ),
 )
 

@@ -1,0 +1,30 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    name: Create release
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Build integration artifact
+        run: |
+          mkdir -p release/custom_components
+          cp -R custom_components/hass_codex_usage release/custom_components/
+          cd release
+          zip -r hass_codex_usage.zip custom_components
+
+      - name: Create GitHub release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: release/hass_codex_usage.zip
+          generate_release_notes: true

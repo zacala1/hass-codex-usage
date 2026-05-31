@@ -79,3 +79,9 @@ python -m compileall custom_components
 ```
 
 GitHub Actions run hassfest and HACS validation.
+
+## Release
+
+Tag releases as `vX.Y.Z`. The release workflow creates a
+`hass_codex_usage.zip` artifact containing the `custom_components` integration
+tree for HACS/manual installs.

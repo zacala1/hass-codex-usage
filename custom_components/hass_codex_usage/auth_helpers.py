@@ -5,6 +5,7 @@ from __future__ import annotations
 import base64
 import hashlib
 import json
+import math
 import secrets
 import time
 from typing import Any
@@ -24,6 +25,7 @@ OPENAI_AUTH_EXTRA_PARAMS = {
     "codex_cli_simplified_flow": "true",
     "originator": "codex_cli_rs",
 }
+TOKEN_REFRESH_MARGIN_SECONDS = 300
 
 
 def create_pkce_pair() -> tuple[str, str]:
@@ -80,9 +82,9 @@ def normalize_token(
     if "refresh_token" not in normalized and previous_token.get("refresh_token"):
         normalized["refresh_token"] = previous_token["refresh_token"]
 
-    expires_in = normalized.get("expires_in")
+    expires_in = seconds_value(normalized.get("expires_in"))
     if expires_in is not None and "expires_at" not in normalized:
-        normalized["expires_at"] = time.time() + int(expires_in)
+        normalized["expires_at"] = time.time() + expires_in
 
     normalized.setdefault("token_type", "Bearer")
 
@@ -93,6 +95,32 @@ def normalize_token(
         normalized["account_email"] = previous_token["account_email"]
 
     return normalized
+
+
+def seconds_value(value: Any) -> float | None:
+    """Return a non-negative seconds value from API or stored token data."""
+    if type(value) not in (int, float, str):
+        return None
+    try:
+        parsed = float(value)
+    except ValueError:
+        return None
+    if not math.isfinite(parsed) or parsed < 0:
+        return None
+    return parsed
+
+
+def token_needs_refresh(
+    token: dict[str, Any],
+    *,
+    now: float | None = None,
+    margin_seconds: int = TOKEN_REFRESH_MARGIN_SECONDS,
+) -> bool:
+    """Return whether a token should be refreshed before use."""
+    expires_at = seconds_value(token.get("expires_at"))
+    if expires_at is None:
+        return True
+    return expires_at - (now if now is not None else time.time()) <= margin_seconds
 
 
 def email_from_id_token(id_token: Any) -> str | None:

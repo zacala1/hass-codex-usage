@@ -16,12 +16,13 @@ jobs:
       - name: Check out repository
         uses: actions/checkout@v4
 
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+
       - name: Build integration artifact
-        run: |
-          mkdir -p release/custom_components
-          cp -R custom_components/hass_codex_usage release/custom_components/
-          cd release
-          zip -r hass_codex_usage.zip custom_components
+        run: python scripts/build_release.py --output release/hass_codex_usage.zip
 
       - name: Create GitHub release
         uses: softprops/action-gh-release@v2

@@ -3,6 +3,8 @@
 from __future__ import annotations
 
 import compileall
+import importlib
+import importlib.util
 import json
 import subprocess
 import sys
@@ -25,6 +27,17 @@ COMPILE_PATHS = (
     ROOT / "custom_components",
     ROOT / "scripts",
     ROOT / "tests",
+)
+INTEGRATION_MODULES = (
+    "custom_components.hass_codex_usage",
+    "custom_components.hass_codex_usage.auth_helpers",
+    "custom_components.hass_codex_usage.config_flow",
+    "custom_components.hass_codex_usage.const",
+    "custom_components.hass_codex_usage.coordinator",
+    "custom_components.hass_codex_usage.diagnostics",
+    "custom_components.hass_codex_usage.oauth",
+    "custom_components.hass_codex_usage.sensor",
+    "custom_components.hass_codex_usage.usage",
 )
 MANIFEST_REQUIRED_KEYS = {
     "codeowners",
@@ -88,6 +101,24 @@ def main() -> int:
     for path in COMPILE_PATHS:
         if not compileall.compile_dir(path, quiet=1):
             failures.append(f"compile failed: {path.relative_to(ROOT)}")
+
+    print("Checking release package contents...")
+    package_check = subprocess.run(
+        [sys.executable, str(ROOT / "scripts" / "build_release.py"), "--check"],
+        cwd=ROOT,
+        check=False,
+        text=True,
+        capture_output=True,
+    )
+    if package_check.stdout:
+        print(package_check.stdout, end="")
+    if package_check.stderr:
+        print(package_check.stderr, end="", file=sys.stderr)
+    if package_check.returncode:
+        failures.append("release package check failed")
+
+    print("Checking optional Home Assistant imports...")
+    failures.extend(check_homeassistant_imports())
 
     print("Checking git diff whitespace...")
     diff_check = subprocess.run(
@@ -169,6 +200,31 @@ def check_repository_metadata(json_data: dict[Path, dict[str, Any]]) -> list[str
             normalized = tracked.replace("\\", "/")
             if any(fnmatch(normalized, pattern) for pattern in SENSITIVE_TRACKED_PATTERNS):
                 failures.append(f"sensitive file is tracked: {tracked}")
+
+    return failures
+
+
+def check_homeassistant_imports() -> list[str]:
+    """Import integration modules when Home Assistant is installed locally."""
+    if importlib.util.find_spec("homeassistant") is None:
+        print("  SKIP homeassistant is not installed")
+        return []
+
+    failures: list[str] = []
+    sys.path.insert(0, str(ROOT))
+    try:
+        for module_name in INTEGRATION_MODULES:
+            try:
+                importlib.import_module(module_name)
+            except Exception as err:  # noqa: BLE001
+                failures.append(f"import failed: {module_name}: {err}")
+            else:
+                print(f"  OK {module_name}")
+    finally:
+        try:
+            sys.path.remove(str(ROOT))
+        except ValueError:
+            pass
 
     return failures
 

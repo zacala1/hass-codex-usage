@@ -147,6 +147,8 @@ class CodexUsageCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             ) from err
         except ClientError as err:
             raise CodexUsageConnectionError("Codex usage request failed") from err
+        except ValueError as err:
+            raise CodexUsageConnectionError("Codex usage response was not valid JSON") from err
 
         if not isinstance(data, dict):
             raise CodexUsageConnectionError("Codex usage response was not an object")

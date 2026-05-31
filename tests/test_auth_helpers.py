@@ -87,6 +87,55 @@ class AuthHelpersTest(unittest.TestCase):
         self.assertEqual(token["account_email"], "user@example.com")
         self.assertGreater(token["expires_at"], 0)
 
+    def test_normalize_token_ignores_invalid_expires_in(self) -> None:
+        """Ignore invalid expires_in values instead of raising."""
+        token = auth_helpers.normalize_token(
+            {
+                "access_token": "access",
+                "expires_in": "not-a-number",
+            }
+        )
+
+        self.assertNotIn("expires_at", token)
+        self.assertEqual(token["token_type"], "Bearer")
+
+    def test_token_needs_refresh(self) -> None:
+        """Decide token refresh from stored expiry values."""
+        self.assertFalse(
+            auth_helpers.token_needs_refresh(
+                {"expires_at": 2000},
+                now=1000,
+                margin_seconds=300,
+            )
+        )
+        self.assertFalse(
+            auth_helpers.token_needs_refresh(
+                {"expires_at": "2000"},
+                now=1000,
+                margin_seconds=300,
+            )
+        )
+        self.assertTrue(
+            auth_helpers.token_needs_refresh(
+                {"expires_at": 1200},
+                now=1000,
+                margin_seconds=300,
+            )
+        )
+        self.assertTrue(
+            auth_helpers.token_needs_refresh(
+                {"expires_at": "not-a-number"},
+                now=1000,
+            )
+        )
+        self.assertTrue(
+            auth_helpers.token_needs_refresh(
+                {"expires_at": "nan"},
+                now=1000,
+            )
+        )
+        self.assertTrue(auth_helpers.token_needs_refresh({}))
+
     def test_email_from_id_token_handles_invalid_values(self) -> None:
         """Ignore invalid ID token values."""
         self.assertIsNone(auth_helpers.email_from_id_token(None))

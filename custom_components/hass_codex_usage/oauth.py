@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import time
 from typing import Any
 
 from aiohttp import ClientError, ClientResponseError, ClientSession
@@ -17,6 +16,7 @@ from .auth_helpers import (
     create_state,
     normalize_token,
     parse_authorization_response,
+    token_needs_refresh,
 )
 from .const import (
     CONF_EXPIRES_AT,
@@ -25,7 +25,6 @@ from .const import (
     OPENAI_OAUTH_CLIENT_ID,
     OPENAI_REDIRECT_URI,
     OPENAI_TOKEN_URL,
-    TOKEN_REFRESH_MARGIN_SECONDS,
 )
 
 
@@ -67,8 +66,7 @@ async def async_ensure_token_valid(
     if not isinstance(token, dict) or not token.get(CONF_ACCESS_TOKEN):
         raise CodexUsageAuthError("Missing access token")
 
-    expires_at = float(token.get(CONF_EXPIRES_AT, 0))
-    if expires_at - time.time() > TOKEN_REFRESH_MARGIN_SECONDS:
+    if not token_needs_refresh(token):
         return token
 
     return await async_refresh_entry_token(hass, entry, session)
@@ -91,8 +89,7 @@ async def async_refresh_entry_token(
         raise CodexUsageAuthError("Missing refresh token")
 
     if not force:
-        expires_at = float(token.get(CONF_EXPIRES_AT, 0))
-        if expires_at - time.time() > TOKEN_REFRESH_MARGIN_SECONDS:
+        if not token_needs_refresh(token):
             return token
 
     new_token = await _async_request_token(

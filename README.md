@@ -81,6 +81,12 @@ Basic local checks:
 python scripts/validate.py
 ```
 
+Build the release zip locally:
+
+```bash
+python scripts/build_release.py
+```
+
 GitHub Actions run local validation, hassfest, and HACS validation.
 The HACS validation job is skipped while the GitHub repository is private
 because HACS fetches repository manifests from public raw GitHub URLs.

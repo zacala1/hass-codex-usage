@@ -32,6 +32,7 @@ jobs:
 
   hacs:
     name: HACS
+    if: ${{ !github.event.repository.private }}
     runs-on: ubuntu-latest
     steps:
       - name: Check out repository

@@ -74,11 +74,10 @@ The default polling interval is 300 seconds. The options flow allows values from
 Basic local checks:
 
 ```bash
-python -m unittest discover -s tests
-python -m compileall custom_components
+python scripts/validate.py
 ```
 
-GitHub Actions run hassfest and HACS validation.
+GitHub Actions run local validation, hassfest, and HACS validation.
 
 ## Release
 

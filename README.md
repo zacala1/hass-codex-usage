@@ -68,6 +68,8 @@ The default polling interval is 300 seconds. The options flow allows values from
 - Model-specific `additional_rate_limits` are ignored for v0.1.
 - OpenAI API-key usage, billing, and token cost are out of scope.
 - Local Codex CLI files such as `auth.json` and JSONL history are not read.
+- Home Assistant Brands registration is still required before requesting HACS
+  default repository inclusion.
 
 ## Development
 

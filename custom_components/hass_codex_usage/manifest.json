@@ -7,6 +7,7 @@
   "documentation": "https://github.com/zacala1/hass-codex-usage",
   "integration_type": "service",
   "iot_class": "cloud_polling",
+  "issue_tracker": "https://github.com/zacala1/hass-codex-usage/issues",
   "requirements": [],
   "version": "0.1.0"
 }

@@ -1,0 +1,59 @@
+{
+  "title": "Codex 사용량",
+  "config": {
+    "step": {
+      "user": {
+        "title": "Codex 사용량 연결",
+        "description": "아래 URL을 브라우저에서 열고 ChatGPT 계정으로 로그인한 뒤 반환된 인증 코드나 전체 리디렉션 URL을 붙여넣으세요.\n\n{auth_url}",
+        "data": {
+          "authorization_code": "인증 코드",
+          "name": "이름",
+          "update_interval": "업데이트 주기(초)"
+        }
+      }
+    },
+    "error": {
+      "cannot_connect": "OpenAI에 연결할 수 없습니다.",
+      "invalid_auth": "OpenAI가 인증 코드를 거부했습니다.",
+      "unknown": "예상하지 못한 오류"
+    },
+    "abort": {
+      "already_configured": "이 ChatGPT 계정은 이미 설정되어 있습니다."
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Codex 사용량 옵션",
+        "data": {
+          "update_interval": "업데이트 주기(초)"
+        }
+      }
+    }
+  },
+  "entity": {
+    "sensor": {
+      "session_usage": {
+        "name": "세션 사용량"
+      },
+      "session_reset_time": {
+        "name": "세션 초기화 시간"
+      },
+      "weekly_usage": {
+        "name": "주간 사용량"
+      },
+      "weekly_reset_time": {
+        "name": "주간 초기화 시간"
+      },
+      "plan": {
+        "name": "요금제"
+      },
+      "code_review_usage": {
+        "name": "코드 리뷰 사용량"
+      },
+      "code_review_reset_time": {
+        "name": "코드 리뷰 초기화 시간"
+      }
+    }
+  }
+}

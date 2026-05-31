@@ -1,0 +1,65 @@
+# Local Codex and LLM context
+.codex/
+.claude/
+.cursor/
+.continue/
+.aider*
+*.jsonl
+llm-usage*/
+usage-captures/
+captures/
+.captures/
+
+# Secrets and local OAuth/API artifacts
+.env
+.env.*
+!.env.example
+secrets.yaml
+auth.json
+token.json
+tokens.json
+oauth.json
+oauth-token*.json
+openai-token*.json
+codex-token*.json
+codex-usage*.json
+openai-usage*.json
+
+# Home Assistant local runtime state
+.storage/
+home-assistant_v2.db*
+home-assistant.log*
+deps/
+tts/
+
+# Python caches, test output, and virtual environments
+__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+.pytype/
+.coverage
+.coverage.*
+htmlcov/
+.tox/
+.nox/
+.venv/
+venv/
+env/
+
+# Build and release artifacts
+build/
+dist/
+*.egg-info/
+*.zip
+*.tar.gz
+
+# Editor and OS files
+.idea/
+.vscode/
+*.swp
+*.swo
+.DS_Store
+Thumbs.db

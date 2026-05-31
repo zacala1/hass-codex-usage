@@ -1,0 +1,59 @@
+{
+  "title": "Codex Usage",
+  "config": {
+    "step": {
+      "user": {
+        "title": "Connect Codex Usage",
+        "description": "Open this URL in a browser, sign in with your ChatGPT account, then paste the returned authorization code or full redirect URL.\n\n{auth_url}",
+        "data": {
+          "authorization_code": "Authorization code",
+          "name": "Name",
+          "update_interval": "Update interval in seconds"
+        }
+      }
+    },
+    "error": {
+      "cannot_connect": "Unable to connect to OpenAI.",
+      "invalid_auth": "OpenAI rejected the authorization code.",
+      "unknown": "Unexpected error"
+    },
+    "abort": {
+      "already_configured": "This ChatGPT account is already configured."
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Codex Usage options",
+        "data": {
+          "update_interval": "Update interval in seconds"
+        }
+      }
+    }
+  },
+  "entity": {
+    "sensor": {
+      "session_usage": {
+        "name": "Session usage"
+      },
+      "session_reset_time": {
+        "name": "Session reset time"
+      },
+      "weekly_usage": {
+        "name": "Weekly usage"
+      },
+      "weekly_reset_time": {
+        "name": "Weekly reset time"
+      },
+      "plan": {
+        "name": "Plan"
+      },
+      "code_review_usage": {
+        "name": "Code review usage"
+      },
+      "code_review_reset_time": {
+        "name": "Code review reset time"
+      }
+    }
+  }
+}

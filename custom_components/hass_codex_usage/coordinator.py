@@ -152,7 +152,7 @@ class CodexUsageCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             raise CodexUsageConnectionError("Codex usage response was not an object")
 
         token_data = self.entry.data.get(CONF_TOKEN, {})
-        account_email = data.get("account_email")
+        account_email = data.get("account_email") or data.get("email")
         if isinstance(token_data, dict) and token_data.get("account_email"):
             account_email = token_data["account_email"]
 

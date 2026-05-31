@@ -27,7 +27,7 @@ class UsageParsingTest(unittest.TestCase):
         payload = {
             "_meta": {
                 "account_email": "user@example.com",
-                "api_endpoint": "chatgpt.com/backend-api/api/codex/usage",
+                "api_endpoint": "chatgpt.com/backend-api/wham/usage",
             },
             "plan": "plus",
             "rate_limits": {
@@ -61,6 +61,54 @@ class UsageParsingTest(unittest.TestCase):
         self.assertEqual(
             usage.sensor_value(payload, usage.CODE_REVIEW_RESET_TIME).isoformat(),
             "2026-05-31T18:00:00+00:00",
+        )
+
+    def test_current_codex_rate_limit_shape(self) -> None:
+        """Parse the rate-limit shape used by the current Codex backend client."""
+        payload = {
+            "plan_type": "plus",
+            "rate_limit": {
+                "primary_window": {
+                    "used_percent": 73.5,
+                    "limit_window_seconds": 18000,
+                    "reset_at": 0,
+                },
+                "secondary_window": {
+                    "used_percent": 54,
+                    "limit_window_seconds": 604800,
+                    "reset_at": 3600,
+                },
+            },
+            "additional_rate_limits": [
+                {
+                    "metered_feature": "code_review",
+                    "limit_name": "Code review Weekly",
+                    "rate_limit": {
+                        "primary_window": {
+                            "used_percent": 9,
+                            "limit_window_seconds": 604800,
+                            "reset_at": 7200,
+                        }
+                    },
+                }
+            ],
+        }
+
+        self.assertEqual(usage.sensor_value(payload, usage.PLAN), "plus")
+        self.assertEqual(usage.sensor_value(payload, usage.SESSION_USAGE), 73.5)
+        self.assertEqual(usage.sensor_value(payload, usage.WEEKLY_USAGE), 54)
+        self.assertEqual(usage.sensor_value(payload, usage.CODE_REVIEW_USAGE), 9)
+        self.assertEqual(
+            usage.sensor_value(payload, usage.SESSION_RESET_TIME).isoformat(),
+            "1970-01-01T00:00:00+00:00",
+        )
+        self.assertEqual(
+            usage.sensor_value(payload, usage.WEEKLY_RESET_TIME).isoformat(),
+            "1970-01-01T01:00:00+00:00",
+        )
+        self.assertEqual(
+            usage.sensor_value(payload, usage.CODE_REVIEW_RESET_TIME).isoformat(),
+            "1970-01-01T02:00:00+00:00",
         )
 
     def test_alternate_field_names(self) -> None:
@@ -128,6 +176,10 @@ class UsageParsingTest(unittest.TestCase):
         self.assertEqual(
             usage.parse_timestamp("2026-05-31T15:30:00").tzinfo,
             timezone.utc,
+        )
+        self.assertEqual(
+            usage.parse_timestamp(0).isoformat(),
+            "1970-01-01T00:00:00+00:00",
         )
         self.assertIsNone(usage.parse_timestamp(""))
         self.assertIsNone(usage.parse_timestamp(None))

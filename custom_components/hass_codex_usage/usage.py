@@ -28,11 +28,13 @@ SENSOR_KEYS = (
 
 WINDOW_PATHS = {
     "primary_window": (
+        ("rate_limit", "primary_window"),
         ("rate_limits", "primary_window"),
         ("primary_window",),
         ("usage", "primary_window"),
     ),
     "secondary_window": (
+        ("rate_limit", "secondary_window"),
         ("rate_limits", "secondary_window"),
         ("secondary_window",),
         ("usage", "secondary_window"),
@@ -44,6 +46,7 @@ WINDOW_PATHS = {
         ("code_review",),
     ),
 }
+CODE_REVIEW_LABEL_FIELDS = ("metered_feature", "limit_name", "id", "name")
 
 
 def sensor_value(data: dict[str, Any], key: str) -> Any:
@@ -80,6 +83,7 @@ def plan(data: dict[str, Any]) -> str | None:
     """Return the ChatGPT plan from known response locations."""
     value = first_present(
         data,
+        ("plan_type",),
         ("plan",),
         ("chatgpt_plan_type",),
         ("account", "plan"),
@@ -90,6 +94,12 @@ def plan(data: dict[str, Any]) -> str | None:
 
 def parse_timestamp(value: Any) -> datetime | None:
     """Parse an API timestamp into a timezone-aware datetime."""
+    if type(value) in (int, float):
+        try:
+            return datetime.fromtimestamp(value, tz=timezone.utc)
+        except (OSError, OverflowError, ValueError):
+            return None
+
     if not isinstance(value, str) or not value:
         return None
 
@@ -140,4 +150,75 @@ def _window_field(
             value = window_data.get(field)
             if value is not None:
                 return value
+
+    if window == "code_review_rate_limit":
+        return _code_review_field(data, fields)
+
     return None
+
+
+def _code_review_field(data: dict[str, Any], fields: tuple[str, ...]) -> Any:
+    """Return a code-review limit field from direct or additional limits."""
+    direct_candidates = (
+        nested_value(data, "rate_limits", "code_review_rate_limit"),
+        nested_value(data, "code_review_rate_limit"),
+        nested_value(data, "rate_limits", "code_review"),
+        nested_value(data, "code_review"),
+    )
+    for candidate in direct_candidates:
+        value = _field_from_limit(candidate, fields)
+        if value is not None:
+            return value
+
+    additional_limits = first_present(
+        data,
+        ("additional_rate_limits",),
+        ("rate_limits", "additional_rate_limits"),
+    )
+    if not isinstance(additional_limits, list):
+        return None
+
+    for item in additional_limits:
+        if not isinstance(item, dict) or not _is_code_review_limit(item):
+            continue
+        value = _field_from_limit(item.get("rate_limit"), fields)
+        if value is not None:
+            return value
+        value = _field_from_limit(item, fields)
+        if value is not None:
+            return value
+
+    return None
+
+
+def _field_from_limit(limit_data: Any, fields: tuple[str, ...]) -> Any:
+    """Return a field from a limit object or one of its windows."""
+    if not isinstance(limit_data, dict):
+        return None
+
+    candidates = (
+        limit_data,
+        limit_data.get("primary_window"),
+        limit_data.get("secondary_window"),
+    )
+    for candidate in candidates:
+        if not isinstance(candidate, dict):
+            continue
+        for field in fields:
+            value = candidate.get(field)
+            if value is not None:
+                return value
+
+    return None
+
+
+def _is_code_review_limit(item: dict[str, Any]) -> bool:
+    """Return whether an additional limit entry appears to be for code review."""
+    for field in CODE_REVIEW_LABEL_FIELDS:
+        value = item.get(field)
+        if not isinstance(value, str):
+            continue
+        normalized = value.lower().replace("-", "_").replace(" ", "_")
+        if "code_review" in normalized:
+            return True
+    return False

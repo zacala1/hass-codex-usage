@@ -20,9 +20,11 @@ The current code provides:
 
 ## Important status
 
-This integration depends on private ChatGPT/Codex endpoints. The OAuth scope,
-redirect behavior, and usage response schema still need to be verified against a
-real ChatGPT account before a public release.
+This integration depends on private ChatGPT/Codex endpoints. OAuth with PKCE,
+the localhost redirect, and the `chatgpt.com/backend-api/wham/usage` response
+shape have been verified once against a real ChatGPT account, but the endpoint
+is not public API and may change without notice. End-to-end Home Assistant
+installation testing is still pending before a public release.
 
 Do not rely on this in production yet.
 

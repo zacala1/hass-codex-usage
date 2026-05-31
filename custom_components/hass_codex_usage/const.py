@@ -26,10 +26,11 @@ CONF_TOKEN_TYPE = "token_type"
 CONF_UPDATE_INTERVAL = "update_interval"
 
 CODEX_USAGE_URLS = (
+    "https://chatgpt.com/backend-api/wham/usage",
     "https://chatgpt.com/backend-api/api/codex/usage",
     "https://chatgpt.com/backend-api/codex/usage",
 )
-CODEX_USAGE_ENDPOINT_LABEL = "chatgpt.com/backend-api/api/codex/usage"
+CODEX_USAGE_ENDPOINT_LABEL = "chatgpt.com/backend-api/wham/usage"
 USER_AGENT = f"HomeAssistant/hass-codex-usage/{VERSION}"
 
 DEFAULT_SCAN_INTERVAL_SECONDS = 300

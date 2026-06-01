@@ -42,6 +42,7 @@ TOKEN_KEYS = {
     CONF_REFRESH_TOKEN,
     CONF_EXPIRES_AT,
     CONF_TOKEN_TYPE,
+    "account_id",
     "id_token",
     "account_email",
 }

@@ -143,6 +143,7 @@ class CodexUsageSensor(CoordinatorEntity[CodexUsageCoordinator], SensorEntity):
         last_updated = self.coordinator.last_success_time
         attributes = {
             "account_email": meta.get("account_email"),
+            "account_id": meta.get("account_id"),
             "integration_version": VERSION,
             "last_updated": last_updated.isoformat() if last_updated else None,
             "api_endpoint": meta.get("api_endpoint", CODEX_USAGE_ENDPOINT_LABEL),

@@ -31,10 +31,14 @@ Manual installation is also possible by copying
 
 1. In Home Assistant, go to **Settings > Devices & services**.
 2. Add the `Codex Usage` integration.
-3. Open the displayed authorization URL in a browser.
+3. Open the authorization link shown by Home Assistant.
 4. Sign in with the ChatGPT account whose Codex limits should be monitored.
-5. Paste either the returned authorization code or the full localhost redirect
-   URL back into Home Assistant.
+5. Paste the returned authorization code or full localhost redirect URL.
+
+The browser may show a `localhost refused to connect` page after authorization.
+That is expected because the integration uses the Codex localhost redirect URI
+only to receive a code in the address bar. Copy the full URL from the browser
+address bar and paste it into the same Home Assistant setup dialog.
 
 The default polling interval is 300 seconds. The options flow accepts values from
 60 to 3600 seconds.
@@ -56,7 +60,8 @@ window metadata when the endpoint provides it.
 
 ## Notes
 
-- Only one ChatGPT account is expected for the first release.
+- Multiple ChatGPT accounts can be added as separate Home Assistant config
+  entries when each login returns a stable OpenAI account identifier.
 - Model-specific `additional_rate_limits` entries are not exposed as dynamic
   sensors.
 

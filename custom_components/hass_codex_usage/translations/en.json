@@ -3,22 +3,24 @@
   "config": {
     "step": {
       "user": {
-        "title": "Connect Codex Usage",
-        "description": "Open this URL in a browser, sign in with your ChatGPT account, then paste the returned authorization code or full redirect URL.\n\n{auth_url}",
+        "title": "Authenticate with Codex Usage",
+        "description": "To authenticate, [open this link]({url}) and sign in with your ChatGPT account.\n\nAfter authorizing, your browser may show a localhost connection error. This is expected. Copy the full URL from the browser address bar and paste it below.",
         "data": {
-          "authorization_code": "Authorization code",
-          "name": "Name",
-          "update_interval": "Update interval in seconds"
+          "authorization_code": "Authorization code or redirect URL"
         }
       },
       "reauth_confirm": {
         "title": "Reauthenticate Codex Usage",
-        "description": "Codex Usage needs to reauthenticate your ChatGPT account."
+        "description": "Codex Usage needs to reauthenticate your ChatGPT account.\n\n[Open this link]({url}) and sign in again. After authorizing, your browser may show a localhost connection error. This is expected. Copy the full URL from the browser address bar and paste it below.",
+        "data": {
+          "authorization_code": "Authorization code or redirect URL"
+        }
       }
     },
     "error": {
       "cannot_connect": "Unable to connect to OpenAI.",
       "invalid_auth": "OpenAI rejected the authorization code.",
+      "missing_code": "Enter the authorization code or redirect URL.",
       "unknown": "Unexpected error"
     },
     "abort": {

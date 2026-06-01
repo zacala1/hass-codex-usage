@@ -15,6 +15,10 @@ OPENAI_OAUTH_CLIENT_ID = "app_EMoamEEZ73f0CkXaXp7hrann"
 OPENAI_AUTHORIZATION_URL = "https://auth.openai.com/oauth/authorize"
 OPENAI_TOKEN_URL = "https://auth.openai.com/oauth/token"
 OPENAI_REDIRECT_URI = "http://localhost:1455/auth/callback"
+OPENAI_DEVICE_USER_CODE_URL = "https://auth.openai.com/api/accounts/deviceauth/usercode"
+OPENAI_DEVICE_TOKEN_URL = "https://auth.openai.com/api/accounts/deviceauth/token"
+OPENAI_DEVICE_VERIFICATION_URL = "https://auth.openai.com/codex/device"
+OPENAI_DEVICE_REDIRECT_URI = "https://auth.openai.com/deviceauth/callback"
 OPENAI_OAUTH_SCOPE = (
     "openid profile email offline_access "
     "api.connectors.read api.connectors.invoke"
@@ -26,6 +30,7 @@ OPENAI_AUTH_EXTRA_PARAMS = {
     "originator": "codex_cli_rs",
 }
 TOKEN_REFRESH_MARGIN_SECONDS = 300
+ACCOUNT_ID_UNIQUE_ID_PREFIX = "account:"
 
 
 def create_pkce_pair() -> tuple[str, str]:
@@ -88,11 +93,19 @@ def normalize_token(
 
     normalized.setdefault("token_type", "Bearer")
 
-    account_email = email_from_id_token(normalized.get("id_token"))
+    account_email = normalize_account_email(
+        normalized.get("account_email")
+    ) or email_from_id_token(normalized.get("id_token"))
     if account_email:
         normalized["account_email"] = account_email
     elif previous_token.get("account_email"):
         normalized["account_email"] = previous_token["account_email"]
+
+    account_id = account_id_from_id_token(normalized.get("id_token"))
+    if account_id:
+        normalized["account_id"] = account_id
+    elif previous_token.get("account_id"):
+        normalized["account_id"] = previous_token["account_id"]
 
     return normalized
 
@@ -129,14 +142,96 @@ def reauth_unique_id(
     fallback_unique_id: str,
 ) -> tuple[str, bool]:
     """Return a reauth unique ID and whether HA should enforce a match."""
-    email = account_email if isinstance(account_email, str) and account_email else None
+    email = normalize_account_email(account_email)
     if existing_unique_id and existing_unique_id != fallback_unique_id:
         return email or existing_unique_id, True
     return email or existing_unique_id or fallback_unique_id, False
 
 
+def token_unique_ids(token: dict[str, Any]) -> tuple[str, ...]:
+    """Return stable unique ID candidates from a token."""
+    candidates: list[str] = []
+
+    email = normalize_account_email(token.get("account_email")) or email_from_id_token(
+        token.get("id_token")
+    )
+    if email:
+        candidates.append(email)
+
+    account_id = normalize_identifier(token.get("account_id")) or account_id_from_id_token(
+        token.get("id_token")
+    )
+    if account_id:
+        candidates.append(f"{ACCOUNT_ID_UNIQUE_ID_PREFIX}{account_id}")
+
+    return tuple(dict.fromkeys(candidates))
+
+
+def token_unique_id(token: dict[str, Any], fallback_unique_id: str) -> str:
+    """Return the preferred unique ID for a token."""
+    candidates = token_unique_ids(token)
+    return candidates[0] if candidates else fallback_unique_id
+
+
+def reauth_unique_id_from_token(
+    existing_unique_id: str | None,
+    token: dict[str, Any],
+    fallback_unique_id: str,
+) -> tuple[str, bool]:
+    """Return a reauth unique ID from token identifiers."""
+    candidates = token_unique_ids(token)
+    if existing_unique_id and existing_unique_id != fallback_unique_id:
+        if existing_unique_id in candidates:
+            return existing_unique_id, True
+        return candidates[0] if candidates else existing_unique_id, True
+
+    return (
+        candidates[0] if candidates else existing_unique_id or fallback_unique_id,
+        False,
+    )
+
+
+def normalize_account_email(value: Any) -> str | None:
+    """Return a normalized account email."""
+    if not isinstance(value, str):
+        return None
+    email = value.strip().lower()
+    return email or None
+
+
+def normalize_identifier(value: Any) -> str | None:
+    """Return a normalized opaque account identifier."""
+    if not isinstance(value, str):
+        return None
+    identifier = value.strip()
+    return identifier or None
+
+
 def email_from_id_token(id_token: Any) -> str | None:
     """Extract email from an ID token without validating the signature."""
+    claims = id_token_claims(id_token)
+    if claims is None:
+        return None
+
+    email = claims.get("email")
+    return normalize_account_email(email)
+
+
+def account_id_from_id_token(id_token: Any) -> str | None:
+    """Extract a stable opaque account ID from an ID token."""
+    claims = id_token_claims(id_token)
+    if claims is None:
+        return None
+
+    for field in ("sub", "account_id", "user_id"):
+        account_id = normalize_identifier(claims.get(field))
+        if account_id:
+            return account_id
+    return None
+
+
+def id_token_claims(id_token: Any) -> dict[str, Any] | None:
+    """Decode ID token claims without validating the signature."""
     if not isinstance(id_token, str):
         return None
 
@@ -152,5 +247,4 @@ def email_from_id_token(id_token: Any) -> str | None:
     except (ValueError, json.JSONDecodeError):
         return None
 
-    email = claims.get("email")
-    return email if isinstance(email, str) else None
+    return claims if isinstance(claims, dict) else None

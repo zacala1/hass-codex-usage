@@ -155,12 +155,16 @@ class CodexUsageCoordinator(DataUpdateCoordinator[dict[str, Any]]):
 
         token_data = self.entry.data.get(CONF_TOKEN, {})
         account_email = data.get("account_email") or data.get("email")
+        account_id = data.get("account_id")
         if isinstance(token_data, dict) and token_data.get("account_email"):
             account_email = token_data["account_email"]
+        if isinstance(token_data, dict) and token_data.get("account_id"):
+            account_id = token_data["account_id"]
 
         data["_meta"] = {
             "api_endpoint": usage_url.removeprefix("https://"),
             "account_email": account_email,
+            "account_id": account_id,
         }
 
         return data

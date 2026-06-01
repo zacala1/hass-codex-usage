@@ -72,7 +72,12 @@ class AuthHelpersTest(unittest.TestCase):
 
     def test_normalize_token(self) -> None:
         """Normalize token data while preserving refresh details."""
-        id_token = self._id_token({"email": "user@example.com"})
+        id_token = self._id_token(
+            {
+                "email": "User@Example.COM",
+                "sub": "account-123",
+            }
+        )
         token = auth_helpers.normalize_token(
             {
                 "access_token": "access",
@@ -85,6 +90,7 @@ class AuthHelpersTest(unittest.TestCase):
         self.assertEqual(token["refresh_token"], "refresh")
         self.assertEqual(token["token_type"], "Bearer")
         self.assertEqual(token["account_email"], "user@example.com")
+        self.assertEqual(token["account_id"], "account-123")
         self.assertGreater(token["expires_at"], 0)
 
     def test_normalize_token_ignores_invalid_expires_in(self) -> None:
@@ -169,6 +175,62 @@ class AuthHelpersTest(unittest.TestCase):
                 "hass_codex_usage",
             ),
             ("hass_codex_usage", False),
+        )
+
+    def test_token_unique_id(self) -> None:
+        """Prefer email unique IDs and use account IDs when email is absent."""
+        self.assertEqual(
+            auth_helpers.token_unique_id(
+                {
+                    "account_email": "User@Example.COM",
+                    "account_id": "account-123",
+                },
+                "hass_codex_usage",
+            ),
+            "user@example.com",
+        )
+        self.assertEqual(
+            auth_helpers.token_unique_id(
+                {
+                    "id_token": self._id_token({"sub": "account-123"}),
+                },
+                "hass_codex_usage",
+            ),
+            "account:account-123",
+        )
+        self.assertEqual(
+            auth_helpers.token_unique_id({}, "hass_codex_usage"),
+            "hass_codex_usage",
+        )
+
+    def test_reauth_unique_id_from_token(self) -> None:
+        """Match reauth against any stable token identifier."""
+        self.assertEqual(
+            auth_helpers.reauth_unique_id_from_token(
+                "account:account-123",
+                {
+                    "account_email": "user@example.com",
+                    "account_id": "account-123",
+                },
+                "hass_codex_usage",
+            ),
+            ("account:account-123", True),
+        )
+        self.assertEqual(
+            auth_helpers.reauth_unique_id_from_token(
+                "old@example.com",
+                {"account_email": "new@example.com"},
+                "hass_codex_usage",
+            ),
+            ("new@example.com", True),
+        )
+        self.assertEqual(
+            auth_helpers.reauth_unique_id_from_token(
+                "hass_codex_usage",
+                {"account_email": "user@example.com"},
+                "hass_codex_usage",
+            ),
+            ("user@example.com", False),
         )
 
     def test_email_from_id_token_handles_invalid_values(self) -> None:

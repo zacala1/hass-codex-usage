@@ -43,6 +43,20 @@ address bar and paste it into the same Home Assistant setup dialog.
 The default polling interval is 300 seconds. The options flow accepts values from
 60 to 3600 seconds.
 
+## Authentication Notes
+
+The setup flow intentionally follows the same pattern as similar Home Assistant
+usage integrations: one authorization link and one paste field. It does not ask
+for a name during setup; the config entry title is derived from the ChatGPT
+account email or account identifier when OpenAI returns one.
+
+Authorization codes are one-time use. If the setup dialog is closed, an error is
+shown, or the redirect URL was copied from an older attempt, start the integration
+setup again and use the new authorization link.
+
+If Home Assistant shows a translation placeholder error after updating the
+integration, restart Home Assistant so it reloads the integration translations.
+
 ## Sensors
 
 - `sensor.codex_session_usage`

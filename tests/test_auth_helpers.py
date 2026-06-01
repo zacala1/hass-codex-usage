@@ -70,6 +70,20 @@ class AuthHelpersTest(unittest.TestCase):
             ("abc123", "state123"),
         )
 
+    def test_parse_localhost_error_redirect_url(self) -> None:
+        """Parse the URL copied from a localhost connection-error page."""
+        redirect_url = (
+            "http://localhost:1455/auth/callback"
+            "?code=ac_test-token.value_123"
+            "&scope=openid+profile+email+offline_access"
+            "&state=state_abc-123"
+        )
+
+        self.assertEqual(
+            auth_helpers.parse_authorization_response(redirect_url),
+            ("ac_test-token.value_123", "state_abc-123"),
+        )
+
     def test_normalize_token(self) -> None:
         """Normalize token data while preserving refresh details."""
         id_token = self._id_token(
@@ -141,6 +155,14 @@ class AuthHelpersTest(unittest.TestCase):
             )
         )
         self.assertTrue(auth_helpers.token_needs_refresh({}))
+
+    def test_seconds_value_rejects_bool_and_non_finite_values(self) -> None:
+        """Reject values that look numeric but are not valid token durations."""
+        self.assertIsNone(auth_helpers.seconds_value(True))
+        self.assertIsNone(auth_helpers.seconds_value(False))
+        self.assertIsNone(auth_helpers.seconds_value("inf"))
+        self.assertIsNone(auth_helpers.seconds_value("-1"))
+        self.assertEqual(auth_helpers.seconds_value("60"), 60)
 
     def test_reauth_unique_id(self) -> None:
         """Allow fallback unique IDs to improve to account email on reauth."""

@@ -12,6 +12,7 @@ from homeassistant.core import callback
 from homeassistant.data_entry_flow import FlowResult
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 
+from .auth_helpers import reauth_unique_id
 from .const import (
     CONF_AUTHORIZATION_CODE,
     CONF_TOKEN,
@@ -116,11 +117,17 @@ class CodexUsageConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 
                 if self.source == config_entries.SOURCE_REAUTH:
                     reauth_entry = self._get_reauth_entry()
-                    unique_id = account_email or reauth_entry.unique_id or DOMAIN
+                    unique_id, enforce_mismatch = reauth_unique_id(
+                        reauth_entry.unique_id,
+                        account_email,
+                        DOMAIN,
+                    )
                     await self.async_set_unique_id(unique_id)
-                    self._abort_if_unique_id_mismatch()
+                    if enforce_mismatch:
+                        self._abort_if_unique_id_mismatch()
                     return self.async_update_reload_and_abort(
                         reauth_entry,
+                        unique_id=unique_id,
                         data_updates={CONF_TOKEN: token},
                     )
 

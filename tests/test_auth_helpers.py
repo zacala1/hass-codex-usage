@@ -136,6 +136,41 @@ class AuthHelpersTest(unittest.TestCase):
         )
         self.assertTrue(auth_helpers.token_needs_refresh({}))
 
+    def test_reauth_unique_id(self) -> None:
+        """Allow fallback unique IDs to improve to account email on reauth."""
+        self.assertEqual(
+            auth_helpers.reauth_unique_id(
+                "hass_codex_usage",
+                "user@example.com",
+                "hass_codex_usage",
+            ),
+            ("user@example.com", False),
+        )
+        self.assertEqual(
+            auth_helpers.reauth_unique_id(
+                "old@example.com",
+                "new@example.com",
+                "hass_codex_usage",
+            ),
+            ("new@example.com", True),
+        )
+        self.assertEqual(
+            auth_helpers.reauth_unique_id(
+                "old@example.com",
+                None,
+                "hass_codex_usage",
+            ),
+            ("old@example.com", True),
+        )
+        self.assertEqual(
+            auth_helpers.reauth_unique_id(
+                None,
+                None,
+                "hass_codex_usage",
+            ),
+            ("hass_codex_usage", False),
+        )
+
     def test_email_from_id_token_handles_invalid_values(self) -> None:
         """Ignore invalid ID token values."""
         self.assertIsNone(auth_helpers.email_from_id_token(None))

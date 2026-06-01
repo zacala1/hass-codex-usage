@@ -123,6 +123,18 @@ def token_needs_refresh(
     return expires_at - (now if now is not None else time.time()) <= margin_seconds
 
 
+def reauth_unique_id(
+    existing_unique_id: str | None,
+    account_email: Any,
+    fallback_unique_id: str,
+) -> tuple[str, bool]:
+    """Return a reauth unique ID and whether HA should enforce a match."""
+    email = account_email if isinstance(account_email, str) and account_email else None
+    if existing_unique_id and existing_unique_id != fallback_unique_id:
+        return email or existing_unique_id, True
+    return email or existing_unique_id or fallback_unique_id, False
+
+
 def email_from_id_token(id_token: Any) -> str | None:
     """Extract email from an ID token without validating the signature."""
     if not isinstance(id_token, str):

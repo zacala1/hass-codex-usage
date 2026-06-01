@@ -17,7 +17,7 @@ from .auth_helpers import (
 
 DOMAIN = "hass_codex_usage"
 DEFAULT_NAME = "Codex Usage"
-VERSION = "0.1.0"
+VERSION = "0.2.0"
 
 CONF_AUTHORIZATION_CODE = "authorization_code"
 CONF_EXPIRES_AT = "expires_at"

@@ -60,6 +60,30 @@
       },
       "code_review_reset_time": {
         "name": "Code review reset time"
+      },
+      "extra_usage_enabled": {
+        "name": "Extra usage enabled"
+      },
+      "extra_usage": {
+        "name": "Extra usage"
+      },
+      "extra_usage_credits": {
+        "name": "Extra usage credit balance"
+      },
+      "extra_usage_limit": {
+        "name": "Extra usage limit"
+      },
+      "codex_spark_usage": {
+        "name": "Spark usage"
+      },
+      "codex_spark_reset_time": {
+        "name": "Spark reset time"
+      },
+      "codex_spark_weekly_usage": {
+        "name": "Spark weekly usage"
+      },
+      "codex_spark_weekly_reset_time": {
+        "name": "Spark weekly reset time"
       }
     }
   }

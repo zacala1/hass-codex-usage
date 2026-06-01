@@ -70,11 +70,33 @@ integration, restart Home Assistant so it reloads the integration translations.
 - `sensor.codex_plan`
 - `sensor.codex_code_review_usage`
 - `sensor.codex_code_review_reset_time`
+- `sensor.codex_extra_usage_enabled`
+- `sensor.codex_extra_usage`
+- `sensor.codex_extra_usage_credits`
+- `sensor.codex_extra_usage_limit`
+- `sensor.codex_spark_usage`
+- `sensor.codex_spark_reset_time`
+- `sensor.codex_spark_weekly_usage`
+- `sensor.codex_spark_weekly_reset_time`
 
 Usage sensors report percentages. Reset sensors report Home Assistant timestamp
 values. Sensor attributes include the account email when available, integration
 version, last successful update time, API endpoint, and relevant rate-limit
 window metadata when the endpoint provides it.
+
+Extra usage sensors expose Codex flexible credits when the ChatGPT usage endpoint
+returns credit or spend-control fields. Current Codex responses usually expose a
+remaining credit balance through `credits.balance`; usage percent and limit values
+are only available when the endpoint also returns explicit spend or limit fields.
+If the account or plan does not expose those fields, the affected optional
+sensors are not created. Disabled extra usage is reported as `0` usage, `0`
+credits limit, and `false` enabled.
+
+Codex Spark sensors expose the model-specific `additional_rate_limits` entry
+when the endpoint returns a Spark limit. Code review sensors require a code-review
+rate-limit entry from the usage endpoint; OpenAI may instead expose code-review
+percentages only on the web dashboard, in which case those sensors are not
+created.
 
 ## Notes
 
@@ -98,5 +120,5 @@ python scripts/build_release.py
 ```
 
 Before publishing a release, run validation, push `main`, then create and push a
-version tag such as `v0.1.0`. The release workflow reruns validation before it
+version tag such as `v0.2.0`. The release workflow reruns validation before it
 builds and attaches `hass_codex_usage.zip` to the GitHub release.

@@ -60,6 +60,30 @@
       },
       "code_review_reset_time": {
         "name": "코드 리뷰 초기화 시간"
+      },
+      "extra_usage_enabled": {
+        "name": "추가 사용량 활성화"
+      },
+      "extra_usage": {
+        "name": "추가 사용량"
+      },
+      "extra_usage_credits": {
+        "name": "추가 사용량 크레딧 잔액"
+      },
+      "extra_usage_limit": {
+        "name": "추가 사용량 한도"
+      },
+      "codex_spark_usage": {
+        "name": "Spark 사용량"
+      },
+      "codex_spark_reset_time": {
+        "name": "Spark 초기화 시간"
+      },
+      "codex_spark_weekly_usage": {
+        "name": "Spark 주간 사용량"
+      },
+      "codex_spark_weekly_reset_time": {
+        "name": "Spark 주간 초기화 시간"
       }
     }
   }

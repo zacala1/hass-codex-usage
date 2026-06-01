@@ -14,19 +14,35 @@ INTEGRATION_DIR = ROOT / "custom_components" / DOMAIN
 DEFAULT_OUTPUT = ROOT / "dist" / f"{DOMAIN}.zip"
 REQUIRED_FILES = (
     INTEGRATION_DIR / "__init__.py",
+    INTEGRATION_DIR / "auth_helpers.py",
+    INTEGRATION_DIR / "config_flow.py",
+    INTEGRATION_DIR / "const.py",
+    INTEGRATION_DIR / "coordinator.py",
+    INTEGRATION_DIR / "diagnostics.py",
     INTEGRATION_DIR / "manifest.json",
+    INTEGRATION_DIR / "oauth.py",
+    INTEGRATION_DIR / "sensor.py",
     INTEGRATION_DIR / "strings.json",
+    INTEGRATION_DIR / "translations" / "ko.json",
     INTEGRATION_DIR / "translations" / "en.json",
+    INTEGRATION_DIR / "usage.py",
     INTEGRATION_DIR / "brand" / "icon.png",
 )
 EXCLUDED_DIRS = {"__pycache__"}
 EXCLUDED_PATTERNS = (
+    ".env",
+    ".env.*",
     "*.pyc",
     "*.pyo",
     "*.jsonl",
+    "*.db",
+    "*.db-*",
+    "*.log",
     "*auth.json",
     "*token*.json",
     "*usage*.json",
+    ".storage/*",
+    "secrets.yaml",
 )
 
 

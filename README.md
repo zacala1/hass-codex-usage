@@ -27,6 +27,10 @@ Manual installation is also possible by copying
 `custom_components/hass_codex_usage` into the Home Assistant
 `custom_components` directory, then restarting Home Assistant.
 
+HACS requires a public GitHub repository for normal custom-repository installs.
+While this repository is private, use manual installation or copy the integration
+directory directly into the target Home Assistant config directory.
+
 ## Configuration
 
 1. In Home Assistant, go to **Settings > Devices & services**.
@@ -92,3 +96,7 @@ Build the release zip:
 ```bash
 python scripts/build_release.py
 ```
+
+Before publishing a release, run validation, push `main`, then create and push a
+version tag such as `v0.1.0`. The release workflow reruns validation before it
+builds and attaches `hass_codex_usage.zip` to the GitHub release.

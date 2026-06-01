@@ -6,6 +6,7 @@ import compileall
 import importlib
 import importlib.util
 import json
+import re
 import subprocess
 import sys
 import unittest
@@ -27,6 +28,22 @@ COMPILE_PATHS = (
     ROOT / "custom_components",
     ROOT / "scripts",
     ROOT / "tests",
+)
+REQUIRED_INTEGRATION_FILES = (
+    "__init__.py",
+    "auth_helpers.py",
+    "config_flow.py",
+    "const.py",
+    "coordinator.py",
+    "diagnostics.py",
+    "manifest.json",
+    "oauth.py",
+    "sensor.py",
+    "strings.json",
+    "translations/en.json",
+    "translations/ko.json",
+    "usage.py",
+    "brand/icon.png",
 )
 INTEGRATION_MODULES = (
     "custom_components.hass_codex_usage",
@@ -66,10 +83,19 @@ SENSITIVE_TRACKED_PATTERNS = (
     ".codex/*",
     ".claude/*",
     "*.jsonl",
+    "*.db",
+    "*.db-*",
+    "*.log",
     "*auth.json",
     "*token*.json",
+    "*usage*.json",
+    ".env",
+    ".env.*",
     ".storage/*",
+    "secrets.yaml",
 )
+VERSION_RE = re.compile(r'^VERSION = "([^"]+)"$')
+HA_VERSION_RE = re.compile(r"^\d{4}\.\d{1,2}\.\d+(?:b\d+)?$")
 
 
 def main() -> int:
@@ -119,6 +145,9 @@ def main() -> int:
 
     print("Checking optional Home Assistant imports...")
     failures.extend(check_homeassistant_imports())
+
+    print("Checking GitHub workflows...")
+    failures.extend(check_workflows())
 
     print("Checking git diff whitespace...")
     diff_check = subprocess.run(
@@ -171,6 +200,11 @@ def check_repository_metadata(json_data: dict[Path, dict[str, Any]]) -> list[str
         failures.append("manifest requirements must remain empty")
     if not manifest.get("issue_tracker"):
         failures.append("manifest issue_tracker must be set")
+    if manifest.get("version") != integration_version():
+        failures.append("manifest version must match const.VERSION")
+    for relative in REQUIRED_INTEGRATION_FILES:
+        if not (INTEGRATION_DIR / relative).is_file():
+            failures.append(f"missing integration file: {relative}")
 
     hacs_path = ROOT / "hacs.json"
     hacs = json_data.get(hacs_path, {})
@@ -181,6 +215,10 @@ def check_repository_metadata(json_data: dict[Path, dict[str, Any]]) -> list[str
         failures.append("hacs.json name must be set")
     if hacs.get("render_readme") is not True:
         failures.append("hacs.json render_readme must be true unless info.md is added")
+    if not isinstance(hacs.get("homeassistant"), str) or not HA_VERSION_RE.match(
+        hacs["homeassistant"]
+    ):
+        failures.append("hacs.json homeassistant must be a Home Assistant version string")
 
     brand_icon = INTEGRATION_DIR / "brand" / "icon.png"
     if not brand_icon.is_file():
@@ -198,10 +236,26 @@ def check_repository_metadata(json_data: dict[Path, dict[str, Any]]) -> list[str
     else:
         for tracked in tracked_files.stdout.splitlines():
             normalized = tracked.replace("\\", "/")
-            if any(fnmatch(normalized, pattern) for pattern in SENSITIVE_TRACKED_PATTERNS):
+            if any(
+                fnmatch(normalized if "/" in pattern else Path(normalized).name, pattern)
+                for pattern in SENSITIVE_TRACKED_PATTERNS
+            ):
                 failures.append(f"sensitive file is tracked: {tracked}")
 
     return failures
+
+
+def integration_version() -> str | None:
+    """Return the integration version from const.py without importing Home Assistant."""
+    const_path = INTEGRATION_DIR / "const.py"
+    try:
+        for line in const_path.read_text(encoding="utf-8").splitlines():
+            match = VERSION_RE.match(line)
+            if match:
+                return match.group(1)
+    except OSError:
+        return None
+    return None
 
 
 def check_homeassistant_imports() -> list[str]:
@@ -225,6 +279,27 @@ def check_homeassistant_imports() -> list[str]:
             sys.path.remove(str(ROOT))
         except ValueError:
             pass
+
+    return failures
+
+
+def check_workflows() -> list[str]:
+    """Validate deployment workflow guardrails."""
+    failures: list[str] = []
+    release_workflow = ROOT / ".github" / "workflows" / "release.yml"
+    try:
+        release_text = release_workflow.read_text(encoding="utf-8")
+    except OSError as err:
+        return [f"release workflow missing or unreadable: {err}"]
+
+    if "tags:" not in release_text or '"v*"' not in release_text:
+        failures.append("release workflow must run for v* tags")
+    if "python scripts/validate.py" not in release_text:
+        failures.append("release workflow must run local validation before packaging")
+    if "python scripts/build_release.py" not in release_text:
+        failures.append("release workflow must build the release package")
+    if "softprops/action-gh-release" not in release_text:
+        failures.append("release workflow must create a GitHub release")
 
     return failures
 

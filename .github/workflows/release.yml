@@ -21,6 +21,9 @@ jobs:
         with:
           python-version: "3.13"
 
+      - name: Run local validation
+        run: python scripts/validate.py
+
       - name: Build integration artifact
         run: python scripts/build_release.py --output release/hass_codex_usage.zip
 

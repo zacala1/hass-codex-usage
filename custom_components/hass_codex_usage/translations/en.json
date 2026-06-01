@@ -4,14 +4,14 @@
     "step": {
       "user": {
         "title": "Authenticate with Codex Usage",
-        "description": "To authenticate, [open this link]({url}) and sign in with your ChatGPT account.\n\nAfter authorizing, your browser may show a localhost connection error. This is expected. Copy the full URL from the browser address bar and paste it below.",
+        "description": "To authenticate, [open link]({url}) and sign in with your ChatGPT account.\n\nAfter authorizing, your browser may show a localhost connection error. This is expected. Copy the full URL from the browser address bar and paste it below.",
         "data": {
           "authorization_code": "Authorization code or redirect URL"
         }
       },
       "reauth_confirm": {
         "title": "Reauthenticate Codex Usage",
-        "description": "Codex Usage needs to reauthenticate your ChatGPT account.\n\n[Open this link]({url}) and sign in again. After authorizing, your browser may show a localhost connection error. This is expected. Copy the full URL from the browser address bar and paste it below.",
+        "description": "Codex Usage needs to reauthenticate your ChatGPT account.\n\n[open link]({url}) and sign in again. After authorizing, your browser may show a localhost connection error. This is expected. Copy the full URL from the browser address bar and paste it below.",
         "data": {
           "authorization_code": "Authorization code or redirect URL"
         }

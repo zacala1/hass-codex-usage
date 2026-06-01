@@ -30,6 +30,7 @@ class TranslationTest(unittest.TestCase):
                     placeholders = set(PLACEHOLDER_RE.findall(description))
 
                     self.assertIn("url", placeholders)
+                    self.assertIn("[open link]({url})", description)
                     self.assertNotIn("auth_url", placeholders)
                     self.assertLessEqual(placeholders, {"url"})
 

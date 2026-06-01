@@ -4,14 +4,14 @@
     "step": {
       "user": {
         "title": "Codex 사용량 인증",
-        "description": "인증하려면 [이 링크를 여세요]({url}) 그리고 ChatGPT 계정으로 로그인하세요.\n\n승인 후 브라우저에 localhost 연결 오류가 표시될 수 있습니다. 정상입니다. 브라우저 주소창의 전체 URL을 복사해서 아래에 붙여넣으세요.",
+        "description": "인증하려면 [open link]({url})를 열고 ChatGPT 계정으로 로그인하세요.\n\n승인 후 브라우저에 localhost 연결 오류가 표시될 수 있습니다. 정상입니다. 브라우저 주소창의 전체 URL을 복사해서 아래에 붙여넣으세요.",
         "data": {
           "authorization_code": "인증 코드 또는 리디렉션 URL"
         }
       },
       "reauth_confirm": {
         "title": "Codex 사용량 재인증",
-        "description": "Codex 사용량 통합에서 ChatGPT 계정 재인증이 필요합니다.\n\n[이 링크를 열고]({url}) 다시 로그인하세요. 승인 후 브라우저에 localhost 연결 오류가 표시될 수 있습니다. 정상입니다. 브라우저 주소창의 전체 URL을 복사해서 아래에 붙여넣으세요.",
+        "description": "Codex 사용량 통합에서 ChatGPT 계정 재인증이 필요합니다.\n\n[open link]({url})를 열고 다시 로그인하세요. 승인 후 브라우저에 localhost 연결 오류가 표시될 수 있습니다. 정상입니다. 브라우저 주소창의 전체 URL을 복사해서 아래에 붙여넣으세요.",
         "data": {
           "authorization_code": "인증 코드 또는 리디렉션 URL"
         }

@@ -71,6 +71,9 @@ class UsageParsingTest(unittest.TestCase):
                 "primary_window": {
                     "used_percent": 73.5,
                     "limit_window_seconds": 18000,
+                    "reset_after_seconds": 900,
+                    "allowed": True,
+                    "limit_reached": False,
                     "reset_at": 0,
                 },
                 "secondary_window": {
@@ -87,6 +90,7 @@ class UsageParsingTest(unittest.TestCase):
                         "primary_window": {
                             "used_percent": 9,
                             "limit_window_seconds": 604800,
+                            "reset_after_seconds": 1200,
                             "reset_at": 7200,
                         }
                     },
@@ -109,6 +113,24 @@ class UsageParsingTest(unittest.TestCase):
         self.assertEqual(
             usage.sensor_value(payload, usage.CODE_REVIEW_RESET_TIME).isoformat(),
             "1970-01-01T02:00:00+00:00",
+        )
+        self.assertEqual(
+            usage.sensor_attributes(payload, usage.SESSION_USAGE),
+            {
+                "allowed": True,
+                "limit_reached": False,
+                "limit_window_seconds": 18000,
+                "reset_after_seconds": 900,
+            },
+        )
+        self.assertEqual(
+            usage.sensor_attributes(payload, usage.CODE_REVIEW_USAGE),
+            {
+                "limit_window_seconds": 604800,
+                "reset_after_seconds": 1200,
+                "metered_feature": "code_review",
+                "limit_name": "Code review Weekly",
+            },
         )
 
     def test_alternate_field_names(self) -> None:

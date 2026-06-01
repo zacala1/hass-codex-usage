@@ -29,6 +29,7 @@ from .usage import (
     SESSION_USAGE,
     WEEKLY_RESET_TIME,
     WEEKLY_USAGE,
+    sensor_attributes,
     sensor_value,
 )
 
@@ -140,9 +141,13 @@ class CodexUsageSensor(CoordinatorEntity[CodexUsageCoordinator], SensorEntity):
         if not isinstance(meta, dict):
             meta = {}
         last_updated = self.coordinator.last_success_time
-        return {
+        attributes = {
             "account_email": meta.get("account_email"),
             "integration_version": VERSION,
             "last_updated": last_updated.isoformat() if last_updated else None,
             "api_endpoint": meta.get("api_endpoint", CODEX_USAGE_ENDPOINT_LABEL),
         }
+        attributes.update(
+            sensor_attributes(data, self.entity_description.key)
+        )
+        return attributes

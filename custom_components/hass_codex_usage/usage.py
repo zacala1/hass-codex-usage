@@ -15,6 +15,12 @@ CODE_REVIEW_RESET_TIME = "code_review_reset_time"
 
 USAGE_PERCENT_FIELDS = ("used_percent", "usage_percent", "percent_used")
 RESET_TIME_FIELDS = ("reset_at", "resets_at", "reset_time")
+WINDOW_ATTRIBUTE_FIELDS = (
+    "allowed",
+    "limit_reached",
+    "limit_window_seconds",
+    "reset_after_seconds",
+)
 
 SENSOR_KEYS = (
     SESSION_USAGE,
@@ -47,6 +53,14 @@ WINDOW_PATHS = {
     ),
 }
 CODE_REVIEW_LABEL_FIELDS = ("metered_feature", "limit_name", "id", "name")
+SENSOR_WINDOWS = {
+    SESSION_USAGE: "primary_window",
+    SESSION_RESET_TIME: "primary_window",
+    WEEKLY_USAGE: "secondary_window",
+    WEEKLY_RESET_TIME: "secondary_window",
+    CODE_REVIEW_USAGE: "code_review_rate_limit",
+    CODE_REVIEW_RESET_TIME: "code_review_rate_limit",
+}
 
 
 def sensor_value(data: dict[str, Any], key: str) -> Any:
@@ -68,6 +82,18 @@ def sensor_value(data: dict[str, Any], key: str) -> Any:
     return None
 
 
+def sensor_attributes(data: dict[str, Any], key: str) -> dict[str, Any]:
+    """Return extra attributes for a sensor value."""
+    window = SENSOR_WINDOWS.get(key)
+    if window is None:
+        return {}
+
+    attributes = window_attributes(data, window)
+    if key in (CODE_REVIEW_USAGE, CODE_REVIEW_RESET_TIME):
+        attributes.update(code_review_label_attributes(data))
+    return attributes
+
+
 def usage_percent(data: dict[str, Any], window: str) -> float | int | None:
     """Return a usage percent value from a usage window."""
     value = _window_field(data, window, USAGE_PERCENT_FIELDS)
@@ -77,6 +103,34 @@ def usage_percent(data: dict[str, Any], window: str) -> float | int | None:
 def reset_time(data: dict[str, Any], window: str) -> datetime | None:
     """Return a reset timestamp from a usage window."""
     return parse_timestamp(_window_field(data, window, RESET_TIME_FIELDS))
+
+
+def window_attributes(data: dict[str, Any], window: str) -> dict[str, Any]:
+    """Return known rate-limit metadata for a usage window."""
+    window_data = _window_data(data, window)
+    if window_data is None:
+        return {}
+
+    attributes: dict[str, Any] = {}
+    for field in WINDOW_ATTRIBUTE_FIELDS:
+        value = window_data.get(field)
+        if type(value) in (bool, int, float, str):
+            attributes[field] = value
+    return attributes
+
+
+def code_review_label_attributes(data: dict[str, Any]) -> dict[str, str]:
+    """Return label attributes for the matched code-review limit."""
+    limit = _code_review_limit(data)
+    if limit is None:
+        return {}
+
+    attributes: dict[str, str] = {}
+    for field in CODE_REVIEW_LABEL_FIELDS:
+        value = limit.get(field)
+        if isinstance(value, str) and value:
+            attributes[field] = value
+    return attributes
 
 
 def plan(data: dict[str, Any]) -> str | None:
@@ -142,23 +196,58 @@ def _window_field(
     fields: tuple[str, ...],
 ) -> Any:
     """Return the first matching field from a known usage window location."""
+    window_data = _window_data(data, window)
+    if window_data is None:
+        return None
+
+    for field in fields:
+        value = window_data.get(field)
+        if value is not None:
+            return value
+
+    return None
+
+
+def _window_data(data: dict[str, Any], window: str) -> dict[str, Any] | None:
+    """Return known usage window data."""
     for path in WINDOW_PATHS.get(window, ()):
         window_data = nested_value(data, *path)
         if not isinstance(window_data, dict):
             continue
-        for field in fields:
-            value = window_data.get(field)
-            if value is not None:
-                return value
+        return window_data
 
     if window == "code_review_rate_limit":
-        return _code_review_field(data, fields)
+        limit = _code_review_limit(data)
+        if limit is None:
+            return None
+        rate_limit = limit.get("rate_limit")
+        if isinstance(rate_limit, dict):
+            for candidate in (
+                rate_limit.get("primary_window"),
+                rate_limit.get("secondary_window"),
+                rate_limit,
+            ):
+                if isinstance(candidate, dict):
+                    return candidate
+        return limit
 
     return None
 
 
 def _code_review_field(data: dict[str, Any], fields: tuple[str, ...]) -> Any:
     """Return a code-review limit field from direct or additional limits."""
+    limit = _code_review_limit(data)
+    if limit is None:
+        return None
+
+    value = _field_from_limit(limit.get("rate_limit"), fields)
+    if value is not None:
+        return value
+    return _field_from_limit(limit, fields)
+
+
+def _code_review_limit(data: dict[str, Any]) -> dict[str, Any] | None:
+    """Return a direct or additional code-review limit object."""
     direct_candidates = (
         nested_value(data, "rate_limits", "code_review_rate_limit"),
         nested_value(data, "code_review_rate_limit"),
@@ -166,9 +255,8 @@ def _code_review_field(data: dict[str, Any], fields: tuple[str, ...]) -> Any:
         nested_value(data, "code_review"),
     )
     for candidate in direct_candidates:
-        value = _field_from_limit(candidate, fields)
-        if value is not None:
-            return value
+        if isinstance(candidate, dict):
+            return candidate
 
     additional_limits = first_present(
         data,
@@ -179,14 +267,8 @@ def _code_review_field(data: dict[str, Any], fields: tuple[str, ...]) -> Any:
         return None
 
     for item in additional_limits:
-        if not isinstance(item, dict) or not _is_code_review_limit(item):
-            continue
-        value = _field_from_limit(item.get("rate_limit"), fields)
-        if value is not None:
-            return value
-        value = _field_from_limit(item, fields)
-        if value is not None:
-            return value
+        if isinstance(item, dict) and _is_code_review_limit(item):
+            return item
 
     return None
 

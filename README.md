@@ -1,36 +1,21 @@
 # hass-codex-usage
 
-Home Assistant custom integration for exposing ChatGPT/Codex subscription usage
+Home Assistant custom integration for showing ChatGPT Codex subscription usage
 limits as sensor entities.
 
-This project is in the initial implementation stage. It targets ChatGPT account
-OAuth and the Codex usage endpoints used by the Codex client, not OpenAI API key
-billing or token-cost reporting.
+The integration signs in with a ChatGPT account through the Codex OAuth flow and
+polls the ChatGPT Codex usage endpoint directly from Home Assistant. It does not
+read local Codex CLI files, JSONL history, OpenAI API keys, billing data, or token
+cost data.
 
-The current code provides:
-
-- HACS/Home Assistant custom integration structure
-- UI config flow with OAuth authorization-code entry
-- PKCE state and verifier handling
-- Refresh-token plumbing
-- `DataUpdateCoordinator` polling
-- Reauthentication flow
-- Diagnostics with token redaction
-- HACS and hassfest validation workflow
-
-## Important status
-
-This integration depends on private ChatGPT/Codex endpoints. OAuth with PKCE,
-the localhost redirect, and the `chatgpt.com/backend-api/wham/usage` response
-shape have been verified once against a real ChatGPT account, but the endpoint
-is not public API and may change without notice. End-to-end Home Assistant
-installation testing is still pending before a public release.
-
-Do not rely on this in production yet.
+This integration uses private ChatGPT/Codex endpoints. OAuth with PKCE, the
+localhost redirect, and `chatgpt.com/backend-api/wham/usage` have been verified
+against one real ChatGPT account, but the endpoint is not a public API and may
+change without notice.
 
 ## Installation
 
-Until this is released, install it as a HACS custom repository:
+Install as a HACS custom repository:
 
 1. Open HACS.
 2. Add this repository URL as a custom repository.
@@ -38,9 +23,9 @@ Until this is released, install it as a HACS custom repository:
 4. Install `Codex Usage`.
 5. Restart Home Assistant.
 
-Manual installation is also possible by copying `custom_components/hass_codex_usage`
-into the Home Assistant `custom_components` directory, then restarting Home
-Assistant.
+Manual installation is also possible by copying
+`custom_components/hass_codex_usage` into the Home Assistant
+`custom_components` directory, then restarting Home Assistant.
 
 ## Configuration
 
@@ -48,51 +33,43 @@ Assistant.
 2. Add the `Codex Usage` integration.
 3. Open the displayed authorization URL in a browser.
 4. Sign in with the ChatGPT account whose Codex limits should be monitored.
-5. Paste either the returned authorization code or the full failed localhost
-   redirect URL back into Home Assistant.
+5. Paste either the returned authorization code or the full localhost redirect
+   URL back into Home Assistant.
 
-The default polling interval is 300 seconds. The options flow allows values from
+The default polling interval is 300 seconds. The options flow accepts values from
 60 to 3600 seconds.
 
-## Planned sensors
+## Sensors
 
-- Codex session usage
-- Codex session reset time
-- Codex weekly usage
-- Codex weekly reset time
-- Codex plan
-- Codex code review usage
-- Codex code review reset time
+- `sensor.codex_session_usage`
+- `sensor.codex_session_reset_time`
+- `sensor.codex_weekly_usage`
+- `sensor.codex_weekly_reset_time`
+- `sensor.codex_plan`
+- `sensor.codex_code_review_usage`
+- `sensor.codex_code_review_reset_time`
 
-## Limitations
+Usage sensors report percentages. Reset sensors report Home Assistant timestamp
+values. Sensor attributes include the account email when available, integration
+version, last successful update time, API endpoint, and relevant rate-limit
+window metadata when the endpoint provides it.
 
-- Only one account is expected for the first release.
-- Model-specific `additional_rate_limits` are ignored for v0.1.
-- OpenAI API-key usage, billing, and token cost are out of scope.
-- Local Codex CLI files such as `auth.json` and JSONL history are not read.
-- Home Assistant Brands registration is still required before requesting HACS
-  default repository inclusion.
+## Notes
+
+- Only one ChatGPT account is expected for the first release.
+- Model-specific `additional_rate_limits` entries are not exposed as dynamic
+  sensors.
 
 ## Development
 
-Basic local checks:
+Run local validation:
 
 ```bash
 python scripts/validate.py
 ```
 
-Build the release zip locally:
+Build the release zip:
 
 ```bash
 python scripts/build_release.py
 ```
-
-GitHub Actions run local validation, hassfest, and HACS validation.
-The HACS validation job is skipped while the GitHub repository is private
-because HACS fetches repository manifests from public raw GitHub URLs.
-
-## Release
-
-Tag releases as `vX.Y.Z`. The release workflow creates a
-`hass_codex_usage.zip` artifact containing the `custom_components` integration
-tree for HACS/manual installs.

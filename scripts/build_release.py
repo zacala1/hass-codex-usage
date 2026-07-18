@@ -12,6 +12,8 @@ ROOT = Path(__file__).resolve().parents[1]
 DOMAIN = "hass_codex_usage"
 INTEGRATION_DIR = ROOT / "custom_components" / DOMAIN
 DEFAULT_OUTPUT = ROOT / "dist" / f"{DOMAIN}.zip"
+ZIP_TIMESTAMP = (1980, 1, 1, 0, 0, 0)
+ZIP_FILE_MODE = 0o100644
 REQUIRED_FILES = (
     INTEGRATION_DIR / "__init__.py",
     INTEGRATION_DIR / "auth_helpers.py",
@@ -77,11 +79,7 @@ def main() -> int:
         return 0
 
     try:
-        output = resolve_output(args.output)
-        output.parent.mkdir(parents=True, exist_ok=True)
-        with zipfile.ZipFile(output, "w", compression=zipfile.ZIP_DEFLATED) as archive:
-            for path in package_files:
-                archive.write(path, path.relative_to(ROOT).as_posix())
+        output = build_archive(args.output, package_files)
     except ReleasePackageError as err:
         print(f"Release package build failed: {err}", file=sys.stderr)
         return 1
@@ -94,16 +92,38 @@ def validate_package_files() -> list[Path]:
     """Return package files after validating release contents."""
     if not INTEGRATION_DIR.is_dir():
         raise ReleasePackageError(f"missing integration directory: {INTEGRATION_DIR}")
+    if INTEGRATION_DIR.is_symlink():
+        raise ReleasePackageError("refusing symlinked integration directory")
+
+    for required_path in REQUIRED_FILES:
+        try:
+            required_path.relative_to(INTEGRATION_DIR)
+        except ValueError as err:
+            raise ReleasePackageError(
+                f"required file is outside the integration directory: {required_path}"
+            ) from err
+        symlink = first_symlink_component(required_path)
+        if symlink is not None:
+            raise ReleasePackageError(
+                "refusing symlinked path: "
+                f"{symlink.relative_to(INTEGRATION_DIR).as_posix()}"
+            )
 
     missing = [path.relative_to(ROOT).as_posix() for path in REQUIRED_FILES if not path.is_file()]
     if missing:
         raise ReleasePackageError(f"missing required files: {', '.join(missing)}")
 
+    expected_files = set(REQUIRED_FILES)
     package_files: list[Path] = []
+    unexpected_files: list[str] = []
     for path in sorted(INTEGRATION_DIR.rglob("*")):
+        relative = path.relative_to(INTEGRATION_DIR)
+        if path.is_symlink():
+            raise ReleasePackageError(
+                f"refusing symlinked path: {relative.as_posix()}"
+            )
         if not path.is_file():
             continue
-        relative = path.relative_to(INTEGRATION_DIR)
         if any(part in EXCLUDED_DIRS for part in relative.parts):
             continue
         relative_text = relative.as_posix()
@@ -111,11 +131,46 @@ def validate_package_files() -> list[Path]:
             raise ReleasePackageError(
                 f"refusing sensitive or generated file: {relative_text}"
             )
+        if path not in expected_files:
+            unexpected_files.append(relative_text)
+            continue
         package_files.append(path)
 
-    if not package_files:
-        raise ReleasePackageError("release package would be empty")
+    if unexpected_files:
+        raise ReleasePackageError(
+            f"unexpected integration files: {', '.join(unexpected_files)}"
+        )
     return package_files
+
+
+def build_archive(path: Path, package_files: list[Path] | None = None) -> Path:
+    """Build a HACS release archive rooted at the integration contents."""
+    files = validate_package_files() if package_files is None else package_files
+    output = resolve_output(path)
+    output.parent.mkdir(parents=True, exist_ok=True)
+    with zipfile.ZipFile(output, "w", compression=zipfile.ZIP_DEFLATED) as archive:
+        for package_file in sorted(
+            files,
+            key=lambda candidate: candidate.relative_to(INTEGRATION_DIR).as_posix(),
+        ):
+            archive_path = package_file.relative_to(INTEGRATION_DIR).as_posix()
+            archive_info = zipfile.ZipInfo(archive_path, date_time=ZIP_TIMESTAMP)
+            archive_info.compress_type = zipfile.ZIP_DEFLATED
+            archive_info.create_system = 3
+            archive_info.external_attr = ZIP_FILE_MODE << 16
+            archive.writestr(archive_info, package_file.read_bytes())
+    return output
+
+
+def first_symlink_component(path: Path) -> Path | None:
+    """Return the first symlink between the integration root and a file."""
+    relative = path.relative_to(INTEGRATION_DIR)
+    candidate = INTEGRATION_DIR
+    for part in relative.parts:
+        candidate /= part
+        if candidate.is_symlink():
+            return candidate
+    return None
 
 
 def resolve_output(path: Path) -> Path:

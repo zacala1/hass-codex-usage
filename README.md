@@ -16,6 +16,8 @@ localhost redirect, and `chatgpt.com/backend-api/wham/usage` have been verified
 against one real ChatGPT account, but the endpoint is not a public API and may
 change without notice.
 
+Requires Home Assistant 2025.12.0 or newer.
+
 ## Installation
 
 [![Open your Home Assistant instance and add this repository to HACS.](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=zacala1&repository=hass-codex-usage&category=integration)
@@ -33,8 +35,8 @@ Manual installation is also possible:
 
 1. Download `hass_codex_usage.zip` from the
    [latest release](https://github.com/zacala1/hass-codex-usage/releases/latest).
-2. Extract its `custom_components/hass_codex_usage` directory into the Home
-   Assistant `custom_components` directory.
+2. Create `/config/custom_components/hass_codex_usage` in your Home Assistant
+   configuration, then extract the ZIP contents directly into that directory.
 3. Restart Home Assistant.
 
 ## Updating
@@ -131,5 +133,6 @@ python scripts/build_release.py
 ```
 
 Before publishing a release, run validation, push `main`, then create and push a
-version tag such as `v0.3.0`. The release workflow reruns validation before it
+version tag such as `v0.3.0`. The tag must match the integration version. The
+release workflow reruns local validation, hassfest, and HACS validation before it
 builds and attaches `hass_codex_usage.zip` to the GitHub release.

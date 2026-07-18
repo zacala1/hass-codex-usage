@@ -1,7 +1,7 @@
 {
   "name": "Codex Usage",
   "render_readme": true,
-  "homeassistant": "2025.1.0",
+  "homeassistant": "2025.12.0",
   "zip_release": true,
   "filename": "hass_codex_usage.zip",
   "hide_default_branch": true

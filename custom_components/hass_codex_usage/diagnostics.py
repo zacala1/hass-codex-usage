@@ -15,6 +15,10 @@ TO_REDACT = {
     "access_token",
     "refresh_token",
     "id_token",
+    "title",
+    "unique_id",
+    "account_email",
+    "account_id",
 }
 
 

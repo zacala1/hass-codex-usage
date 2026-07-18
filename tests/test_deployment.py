@@ -55,6 +55,21 @@ class DeploymentTest(unittest.TestCase):
             self.assertNotIn("token", relative.lower())
             self.assertNotIn("auth.json", relative.lower())
 
+    def test_release_package_excludes_removed_parser_modules(self) -> None:
+        """Do not restore the deleted compatibility parser modules."""
+        package_files = {
+            path.relative_to(build_release.INTEGRATION_DIR).as_posix()
+            for path in build_release.validate_package_files()
+        }
+        self.assertTrue(
+            {
+                "usage_constants.py",
+                "usage_extra.py",
+                "usage_values.py",
+                "usage_windows.py",
+            }.isdisjoint(package_files)
+        )
+
     def test_manifest_version_matches_code_version(self) -> None:
         """Keep Home Assistant manifest version aligned with sensor metadata."""
         manifest = json.loads(

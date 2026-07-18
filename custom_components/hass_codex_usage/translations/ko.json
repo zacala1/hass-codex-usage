@@ -40,14 +40,14 @@
   },
   "entity": {
     "sensor": {
-      "session_usage": {
-        "name": "세션 사용량"
+      "session_usage_remaining": {
+        "name": "세션 잔여량"
       },
       "session_reset_time": {
         "name": "세션 초기화 시간"
       },
-      "weekly_usage": {
-        "name": "주간 사용량"
+      "weekly_usage_remaining": {
+        "name": "주간 잔여량"
       },
       "weekly_reset_time": {
         "name": "주간 초기화 시간"
@@ -55,35 +55,26 @@
       "plan": {
         "name": "요금제"
       },
-      "code_review_usage": {
-        "name": "코드 리뷰 사용량"
+      "code_review_usage_remaining": {
+        "name": "코드 리뷰 잔여량"
       },
       "code_review_reset_time": {
         "name": "코드 리뷰 초기화 시간"
       },
-      "extra_usage_enabled": {
-        "name": "추가 사용량 활성화"
+      "extra_usage_remaining": {
+        "name": "추가 사용량 잔여량"
       },
-      "extra_usage": {
-        "name": "추가 사용량"
+      "extra_usage_reset_time": {
+        "name": "추가 사용량 초기화 시간"
       },
-      "extra_usage_credits": {
-        "name": "추가 사용량 크레딧 잔액"
+      "extra_usage_balance": {
+        "name": "추가 사용량 잔액"
+      },
+      "extra_usage_used": {
+        "name": "추가 사용량 사용분"
       },
       "extra_usage_limit": {
         "name": "추가 사용량 한도"
-      },
-      "codex_spark_usage": {
-        "name": "Spark 사용량"
-      },
-      "codex_spark_reset_time": {
-        "name": "Spark 초기화 시간"
-      },
-      "codex_spark_weekly_usage": {
-        "name": "Spark 주간 사용량"
-      },
-      "codex_spark_weekly_reset_time": {
-        "name": "Spark 주간 초기화 시간"
       }
     }
   }

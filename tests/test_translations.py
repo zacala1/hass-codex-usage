@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import importlib.util
 import re
 import unittest
 from pathlib import Path
@@ -14,6 +15,11 @@ TRANSLATION_FILES = (
     ROOT / "custom_components" / "hass_codex_usage" / "translations" / "en.json",
     ROOT / "custom_components" / "hass_codex_usage" / "translations" / "ko.json",
 )
+USAGE_PATH = ROOT / "custom_components" / "hass_codex_usage" / "usage.py"
+USAGE_SPEC = importlib.util.spec_from_file_location("translation_usage", USAGE_PATH)
+assert USAGE_SPEC is not None and USAGE_SPEC.loader is not None
+usage = importlib.util.module_from_spec(USAGE_SPEC)
+USAGE_SPEC.loader.exec_module(usage)
 PLACEHOLDER_RE = re.compile(r"{([A-Za-z_][A-Za-z0-9_]*)}")
 
 
@@ -50,6 +56,14 @@ class TranslationTest(unittest.TestCase):
                 self.assertEqual(
                     set(steps["reauth_confirm"]["data"]),
                     {"authorization_code"},
+                )
+
+    def test_sensor_translations_match_current_sensor_set(self) -> None:
+        """Keep all translation files on the exact current sensor contract."""
+        for path, data in self._translation_data():
+            with self.subTest(path=path.name):
+                self.assertEqual(
+                    set(data["entity"]["sensor"]), set(usage.SENSOR_KEYS)
                 )
 
     @staticmethod

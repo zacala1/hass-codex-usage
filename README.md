@@ -63,47 +63,40 @@ integration, restart Home Assistant so it reloads the integration translations.
 
 ## Sensors
 
-- `sensor.codex_session_usage`
+- `sensor.codex_session_usage_remaining`
 - `sensor.codex_session_reset_time`
-- `sensor.codex_weekly_usage`
+- `sensor.codex_weekly_usage_remaining`
 - `sensor.codex_weekly_reset_time`
 - `sensor.codex_plan`
-- `sensor.codex_code_review_usage`
+- `sensor.codex_code_review_usage_remaining`
 - `sensor.codex_code_review_reset_time`
-- `sensor.codex_extra_usage_enabled`
-- `sensor.codex_extra_usage`
-- `sensor.codex_extra_usage_credits`
+- `sensor.codex_extra_usage_remaining`
+- `sensor.codex_extra_usage_reset_time`
+- `sensor.codex_extra_usage_balance`
+- `sensor.codex_extra_usage_used`
 - `sensor.codex_extra_usage_limit`
-- `sensor.codex_spark_usage`
-- `sensor.codex_spark_reset_time`
-- `sensor.codex_spark_weekly_usage`
-- `sensor.codex_spark_weekly_reset_time`
 
-Usage sensors report percentages. Reset sensors report Home Assistant timestamp
-values. Sensor attributes include the account email when available, integration
-version, last successful update time, API endpoint, and relevant rate-limit
-window metadata when the endpoint provides it.
+Percentage sensors report the amount remaining, matching the current Codex usage
+display. Reset sensors report Home Assistant timestamp values. Sensor attributes
+include the account email when available, integration version, last successful
+update time, API endpoint, and relevant rate-limit window metadata when the
+endpoint provides it.
 
-Extra usage sensors expose Codex flexible credits when the ChatGPT usage endpoint
-returns credit or spend-control fields. Current Codex responses usually expose a
-remaining credit balance through `credits.balance`; usage percent and limit values
-are only available when the endpoint also returns explicit spend or limit fields.
-If the account or plan does not expose those fields, the affected optional
-sensors are not created. Disabled extra usage is reported as `0` usage, `0`
-credits limit, and `false` enabled.
+Extra usage sensors expose the current `credits.balance` separately from the
+`spend_control.individual_limit` used amount, limit, remaining percentage, and
+reset time. If an account or plan does not return one of these fields, its fixed
+sensor remains available in the entity registry but its state is unavailable.
 
-Codex Spark sensors expose the model-specific `additional_rate_limits` entry
-when the endpoint returns a Spark limit. Code review sensors require a code-review
-rate-limit entry from the usage endpoint; OpenAI may instead expose code-review
-percentages only on the web dashboard, in which case those sensors are not
-created.
+Code review sensors read the current `codex_auto_review` entry in
+`additional_rate_limits`. If the endpoint does not return that entry, their
+states are unavailable.
 
 ## Notes
 
 - Multiple ChatGPT accounts can be added as separate Home Assistant config
   entries when each login returns a stable OpenAI account identifier.
-- Model-specific `additional_rate_limits` entries are not exposed as dynamic
-  sensors.
+- Other model-specific `additional_rate_limits` entries are not exposed as
+  dynamic sensors.
 
 ## Development
 
@@ -120,5 +113,5 @@ python scripts/build_release.py
 ```
 
 Before publishing a release, run validation, push `main`, then create and push a
-version tag such as `v0.2.0`. The release workflow reruns validation before it
+version tag such as `v0.3.0`. The release workflow reruns validation before it
 builds and attaches `hass_codex_usage.zip` to the GitHub release.

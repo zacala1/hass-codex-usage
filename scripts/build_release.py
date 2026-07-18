@@ -46,6 +46,10 @@ EXCLUDED_PATTERNS = (
 )
 
 
+class ReleasePackageError(ValueError):
+    """Raised when release package contents or output are invalid."""
+
+
 def main() -> int:
     """Run the release builder."""
     parser = argparse.ArgumentParser()
@@ -64,7 +68,7 @@ def main() -> int:
 
     try:
         package_files = validate_package_files()
-    except ValueError as err:
+    except ReleasePackageError as err:
         print(f"Release package validation failed: {err}", file=sys.stderr)
         return 1
 
@@ -78,7 +82,7 @@ def main() -> int:
         with zipfile.ZipFile(output, "w", compression=zipfile.ZIP_DEFLATED) as archive:
             for path in package_files:
                 archive.write(path, path.relative_to(ROOT).as_posix())
-    except ValueError as err:
+    except ReleasePackageError as err:
         print(f"Release package build failed: {err}", file=sys.stderr)
         return 1
 
@@ -89,11 +93,11 @@ def main() -> int:
 def validate_package_files() -> list[Path]:
     """Return package files after validating release contents."""
     if not INTEGRATION_DIR.is_dir():
-        raise ValueError(f"missing integration directory: {INTEGRATION_DIR}")
+        raise ReleasePackageError(f"missing integration directory: {INTEGRATION_DIR}")
 
     missing = [path.relative_to(ROOT).as_posix() for path in REQUIRED_FILES if not path.is_file()]
     if missing:
-        raise ValueError(f"missing required files: {', '.join(missing)}")
+        raise ReleasePackageError(f"missing required files: {', '.join(missing)}")
 
     package_files: list[Path] = []
     for path in sorted(INTEGRATION_DIR.rglob("*")):
@@ -104,11 +108,13 @@ def validate_package_files() -> list[Path]:
             continue
         relative_text = relative.as_posix()
         if any(fnmatch(relative_text, pattern) for pattern in EXCLUDED_PATTERNS):
-            raise ValueError(f"refusing sensitive or generated file: {relative_text}")
+            raise ReleasePackageError(
+                f"refusing sensitive or generated file: {relative_text}"
+            )
         package_files.append(path)
 
     if not package_files:
-        raise ValueError("release package would be empty")
+        raise ReleasePackageError("release package would be empty")
     return package_files
 
 
@@ -117,9 +123,9 @@ def resolve_output(path: Path) -> Path:
     output = path if path.is_absolute() else ROOT / path
     output = output.resolve()
     if output.suffix.lower() != ".zip":
-        raise ValueError("output path must end in .zip")
+        raise ReleasePackageError("output path must end in .zip")
     if not output.is_relative_to(ROOT):
-        raise ValueError(f"output must stay inside the repository: {output}")
+        raise ReleasePackageError(f"output must stay inside the repository: {output}")
     return output
 
 

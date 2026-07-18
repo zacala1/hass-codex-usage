@@ -13,10 +13,9 @@ from homeassistant.components.sensor import (
     SensorStateClass,
 )
 from homeassistant.config_entries import ConfigEntry
-from homeassistant.const import PERCENTAGE, Platform
+from homeassistant.const import PERCENTAGE
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers import device_registry as dr
-from homeassistant.helpers import entity_registry as er
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
@@ -24,27 +23,24 @@ from .const import CODEX_USAGE_ENDPOINT_LABEL, DOMAIN, VERSION
 from .coordinator import CodexUsageCoordinator
 from .usage import (
     CODE_REVIEW_RESET_TIME,
-    CODE_REVIEW_USAGE,
-    CODEX_SPARK_RESET_TIME,
-    CODEX_SPARK_USAGE,
-    CODEX_SPARK_WEEKLY_RESET_TIME,
-    CODEX_SPARK_WEEKLY_USAGE,
-    EXTRA_USAGE,
-    EXTRA_USAGE_CREDITS,
-    EXTRA_USAGE_ENABLED,
+    CODE_REVIEW_USAGE_REMAINING,
+    EXTRA_USAGE_BALANCE,
     EXTRA_USAGE_LIMIT,
+    EXTRA_USAGE_REMAINING,
+    EXTRA_USAGE_RESET_TIME,
+    EXTRA_USAGE_USED,
     PLAN,
+    SENSOR_KEYS,
     SESSION_RESET_TIME,
-    SESSION_USAGE,
+    SESSION_USAGE_REMAINING,
     WEEKLY_RESET_TIME,
-    WEEKLY_USAGE,
+    WEEKLY_USAGE_REMAINING,
     sensor_attributes,
-    sensor_supported,
     sensor_value,
 )
 
 
-@dataclass(frozen=True, kw_only=True)
+@dataclass(frozen=True, slots=True, kw_only=True)
 class CodexUsageSensorDescription(SensorEntityDescription):
     """Description for a Codex usage sensor."""
 
@@ -53,11 +49,11 @@ class CodexUsageSensorDescription(SensorEntityDescription):
 
 SENSOR_DESCRIPTIONS: tuple[CodexUsageSensorDescription, ...] = (
     CodexUsageSensorDescription(
-        key=SESSION_USAGE,
-        translation_key="session_usage",
+        key=SESSION_USAGE_REMAINING,
+        translation_key="session_usage_remaining",
         native_unit_of_measurement=PERCENTAGE,
         state_class=SensorStateClass.MEASUREMENT,
-        value_fn=lambda data: sensor_value(data, SESSION_USAGE),
+        value_fn=lambda data: sensor_value(data, SESSION_USAGE_REMAINING),
     ),
     CodexUsageSensorDescription(
         key=SESSION_RESET_TIME,
@@ -66,11 +62,11 @@ SENSOR_DESCRIPTIONS: tuple[CodexUsageSensorDescription, ...] = (
         value_fn=lambda data: sensor_value(data, SESSION_RESET_TIME),
     ),
     CodexUsageSensorDescription(
-        key=WEEKLY_USAGE,
-        translation_key="weekly_usage",
+        key=WEEKLY_USAGE_REMAINING,
+        translation_key="weekly_usage_remaining",
         native_unit_of_measurement=PERCENTAGE,
         state_class=SensorStateClass.MEASUREMENT,
-        value_fn=lambda data: sensor_value(data, WEEKLY_USAGE),
+        value_fn=lambda data: sensor_value(data, WEEKLY_USAGE_REMAINING),
     ),
     CodexUsageSensorDescription(
         key=WEEKLY_RESET_TIME,
@@ -84,11 +80,11 @@ SENSOR_DESCRIPTIONS: tuple[CodexUsageSensorDescription, ...] = (
         value_fn=lambda data: sensor_value(data, PLAN),
     ),
     CodexUsageSensorDescription(
-        key=CODE_REVIEW_USAGE,
-        translation_key="code_review_usage",
+        key=CODE_REVIEW_USAGE_REMAINING,
+        translation_key="code_review_usage_remaining",
         native_unit_of_measurement=PERCENTAGE,
         state_class=SensorStateClass.MEASUREMENT,
-        value_fn=lambda data: sensor_value(data, CODE_REVIEW_USAGE),
+        value_fn=lambda data: sensor_value(data, CODE_REVIEW_USAGE_REMAINING),
     ),
     CodexUsageSensorDescription(
         key=CODE_REVIEW_RESET_TIME,
@@ -97,23 +93,31 @@ SENSOR_DESCRIPTIONS: tuple[CodexUsageSensorDescription, ...] = (
         value_fn=lambda data: sensor_value(data, CODE_REVIEW_RESET_TIME),
     ),
     CodexUsageSensorDescription(
-        key=EXTRA_USAGE_ENABLED,
-        translation_key="extra_usage_enabled",
-        value_fn=lambda data: sensor_value(data, EXTRA_USAGE_ENABLED),
-    ),
-    CodexUsageSensorDescription(
-        key=EXTRA_USAGE,
-        translation_key="extra_usage",
+        key=EXTRA_USAGE_REMAINING,
+        translation_key="extra_usage_remaining",
         native_unit_of_measurement=PERCENTAGE,
         state_class=SensorStateClass.MEASUREMENT,
-        value_fn=lambda data: sensor_value(data, EXTRA_USAGE),
+        value_fn=lambda data: sensor_value(data, EXTRA_USAGE_REMAINING),
     ),
     CodexUsageSensorDescription(
-        key=EXTRA_USAGE_CREDITS,
-        translation_key="extra_usage_credits",
+        key=EXTRA_USAGE_RESET_TIME,
+        translation_key="extra_usage_reset_time",
+        device_class=SensorDeviceClass.TIMESTAMP,
+        value_fn=lambda data: sensor_value(data, EXTRA_USAGE_RESET_TIME),
+    ),
+    CodexUsageSensorDescription(
+        key=EXTRA_USAGE_BALANCE,
+        translation_key="extra_usage_balance",
         native_unit_of_measurement="credits",
         state_class=SensorStateClass.MEASUREMENT,
-        value_fn=lambda data: sensor_value(data, EXTRA_USAGE_CREDITS),
+        value_fn=lambda data: sensor_value(data, EXTRA_USAGE_BALANCE),
+    ),
+    CodexUsageSensorDescription(
+        key=EXTRA_USAGE_USED,
+        translation_key="extra_usage_used",
+        native_unit_of_measurement="credits",
+        state_class=SensorStateClass.MEASUREMENT,
+        value_fn=lambda data: sensor_value(data, EXTRA_USAGE_USED),
     ),
     CodexUsageSensorDescription(
         key=EXTRA_USAGE_LIMIT,
@@ -122,32 +126,12 @@ SENSOR_DESCRIPTIONS: tuple[CodexUsageSensorDescription, ...] = (
         state_class=SensorStateClass.MEASUREMENT,
         value_fn=lambda data: sensor_value(data, EXTRA_USAGE_LIMIT),
     ),
-    CodexUsageSensorDescription(
-        key=CODEX_SPARK_USAGE,
-        translation_key="codex_spark_usage",
-        native_unit_of_measurement=PERCENTAGE,
-        state_class=SensorStateClass.MEASUREMENT,
-        value_fn=lambda data: sensor_value(data, CODEX_SPARK_USAGE),
-    ),
-    CodexUsageSensorDescription(
-        key=CODEX_SPARK_RESET_TIME,
-        translation_key="codex_spark_reset_time",
-        device_class=SensorDeviceClass.TIMESTAMP,
-        value_fn=lambda data: sensor_value(data, CODEX_SPARK_RESET_TIME),
-    ),
-    CodexUsageSensorDescription(
-        key=CODEX_SPARK_WEEKLY_USAGE,
-        translation_key="codex_spark_weekly_usage",
-        native_unit_of_measurement=PERCENTAGE,
-        state_class=SensorStateClass.MEASUREMENT,
-        value_fn=lambda data: sensor_value(data, CODEX_SPARK_WEEKLY_USAGE),
-    ),
-    CodexUsageSensorDescription(
-        key=CODEX_SPARK_WEEKLY_RESET_TIME,
-        translation_key="codex_spark_weekly_reset_time",
-        device_class=SensorDeviceClass.TIMESTAMP,
-        value_fn=lambda data: sensor_value(data, CODEX_SPARK_WEEKLY_RESET_TIME),
-    ),
+)
+
+assert tuple(description.key for description in SENSOR_DESCRIPTIONS) == SENSOR_KEYS
+assert (
+    tuple(description.translation_key for description in SENSOR_DESCRIPTIONS)
+    == SENSOR_KEYS
 )
 
 
@@ -158,37 +142,10 @@ async def async_setup_entry(
 ) -> None:
     """Set up Codex Usage sensors from a config entry."""
     coordinator: CodexUsageCoordinator = hass.data[DOMAIN][entry.entry_id]
-    data = coordinator.data or {}
-    descriptions = tuple(
-        description
-        for description in SENSOR_DESCRIPTIONS
-        if sensor_supported(data, description.key)
-    )
-    _remove_unsupported_entities(hass, entry, descriptions)
     async_add_entities(
         CodexUsageSensor(coordinator, entry, description)
-        for description in descriptions
+        for description in SENSOR_DESCRIPTIONS
     )
-
-
-def _remove_unsupported_entities(
-    hass: HomeAssistant,
-    entry: ConfigEntry,
-    descriptions: tuple[CodexUsageSensorDescription, ...],
-) -> None:
-    """Remove optional entities that the current usage response cannot support."""
-    supported_keys = {description.key for description in descriptions}
-    registry = er.async_get(hass)
-    for description in SENSOR_DESCRIPTIONS:
-        if description.key in supported_keys:
-            continue
-        entity_id = registry.async_get_entity_id(
-            Platform.SENSOR,
-            DOMAIN,
-            f"{entry.entry_id}_{description.key}",
-        )
-        if entity_id is not None:
-            registry.async_remove(entity_id)
 
 
 class CodexUsageSensor(CoordinatorEntity[CodexUsageCoordinator], SensorEntity):

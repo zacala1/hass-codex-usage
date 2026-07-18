@@ -15,10 +15,6 @@ OPENAI_OAUTH_CLIENT_ID = "app_EMoamEEZ73f0CkXaXp7hrann"
 OPENAI_AUTHORIZATION_URL = "https://auth.openai.com/oauth/authorize"
 OPENAI_TOKEN_URL = "https://auth.openai.com/oauth/token"
 OPENAI_REDIRECT_URI = "http://localhost:1455/auth/callback"
-OPENAI_DEVICE_USER_CODE_URL = "https://auth.openai.com/api/accounts/deviceauth/usercode"
-OPENAI_DEVICE_TOKEN_URL = "https://auth.openai.com/api/accounts/deviceauth/token"
-OPENAI_DEVICE_VERIFICATION_URL = "https://auth.openai.com/codex/device"
-OPENAI_DEVICE_REDIRECT_URI = "https://auth.openai.com/deviceauth/callback"
 OPENAI_OAUTH_SCOPE = (
     "openid profile email offline_access "
     "api.connectors.read api.connectors.invoke"
@@ -136,18 +132,6 @@ def token_needs_refresh(
     return expires_at - (now if now is not None else time.time()) <= margin_seconds
 
 
-def reauth_unique_id(
-    existing_unique_id: str | None,
-    account_email: Any,
-    fallback_unique_id: str,
-) -> tuple[str, bool]:
-    """Return a reauth unique ID and whether HA should enforce a match."""
-    email = normalize_account_email(account_email)
-    if existing_unique_id and existing_unique_id != fallback_unique_id:
-        return email or existing_unique_id, True
-    return email or existing_unique_id or fallback_unique_id, False
-
-
 def token_unique_ids(token: dict[str, Any]) -> tuple[str, ...]:
     """Return stable unique ID candidates from a token."""
     candidates: list[str] = []
@@ -171,24 +155,6 @@ def token_unique_id(token: dict[str, Any], fallback_unique_id: str) -> str:
     """Return the preferred unique ID for a token."""
     candidates = token_unique_ids(token)
     return candidates[0] if candidates else fallback_unique_id
-
-
-def reauth_unique_id_from_token(
-    existing_unique_id: str | None,
-    token: dict[str, Any],
-    fallback_unique_id: str,
-) -> tuple[str, bool]:
-    """Return a reauth unique ID from token identifiers."""
-    candidates = token_unique_ids(token)
-    if existing_unique_id and existing_unique_id != fallback_unique_id:
-        if existing_unique_id in candidates:
-            return existing_unique_id, True
-        return candidates[0] if candidates else existing_unique_id, True
-
-    return (
-        candidates[0] if candidates else existing_unique_id or fallback_unique_id,
-        False,
-    )
 
 
 def normalize_account_email(value: Any) -> str | None:

@@ -11,7 +11,13 @@ from homeassistant.core import callback
 from homeassistant.data_entry_flow import FlowResult
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 
-from .auth_helpers import reauth_unique_id_from_token, token_unique_id
+from .auth_helpers import (
+    build_authorization_url,
+    create_pkce_pair,
+    create_state,
+    parse_authorization_response,
+    token_unique_id,
+)
 from .const import (
     CONF_AUTHORIZATION_CODE,
     CONF_TOKEN,
@@ -26,10 +32,6 @@ from .oauth import (
     CodexUsageAuthError,
     CodexUsageConnectionError,
     async_exchange_code_for_token,
-    build_authorization_url,
-    create_pkce_pair,
-    create_state,
-    parse_authorization_response,
 )
 
 
@@ -144,14 +146,8 @@ class CodexUsageConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 
         if self.source == config_entries.SOURCE_REAUTH:
             reauth_entry = self._get_reauth_entry()
-            unique_id, enforce_mismatch = reauth_unique_id_from_token(
-                reauth_entry.unique_id,
-                token,
-                DOMAIN,
-            )
             await self.async_set_unique_id(unique_id)
-            if enforce_mismatch:
-                self._abort_if_unique_id_mismatch()
+            self._abort_if_unique_id_mismatch()
             return self.async_update_reload_and_abort(
                 reauth_entry,
                 unique_id=unique_id,
@@ -181,9 +177,8 @@ class CodexUsageConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         )
 
     def _auth_description_placeholders(self) -> dict[str, str]:
-        """Return OAuth link placeholders for current and older translations."""
-        auth_url = self._auth_url or ""
-        return {"url": auth_url, "auth_url": auth_url}
+        """Return the OAuth link placeholder."""
+        return {"url": self._auth_url or ""}
 
     def _title_from_token(self, token: dict[str, Any]) -> str:
         """Return a user-facing title for a new config entry."""
@@ -207,10 +202,7 @@ class CodexUsageOptionsFlow(config_entries.OptionsFlowWithReload):
             return self.async_create_entry(title="", data=user_input)
 
         current_interval = self.config_entry.options.get(
-            CONF_UPDATE_INTERVAL,
-            self.config_entry.data.get(
-                CONF_UPDATE_INTERVAL, DEFAULT_SCAN_INTERVAL_SECONDS
-            ),
+            CONF_UPDATE_INTERVAL, DEFAULT_SCAN_INTERVAL_SECONDS
         )
 
         return self.async_show_form(

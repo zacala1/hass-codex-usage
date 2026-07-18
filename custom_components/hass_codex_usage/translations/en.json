@@ -40,14 +40,14 @@
   },
   "entity": {
     "sensor": {
-      "session_usage": {
-        "name": "Session usage"
+      "session_usage_remaining": {
+        "name": "Session remaining"
       },
       "session_reset_time": {
         "name": "Session reset time"
       },
-      "weekly_usage": {
-        "name": "Weekly usage"
+      "weekly_usage_remaining": {
+        "name": "Weekly remaining"
       },
       "weekly_reset_time": {
         "name": "Weekly reset time"
@@ -55,35 +55,26 @@
       "plan": {
         "name": "Plan"
       },
-      "code_review_usage": {
-        "name": "Code review usage"
+      "code_review_usage_remaining": {
+        "name": "Code review remaining"
       },
       "code_review_reset_time": {
         "name": "Code review reset time"
       },
-      "extra_usage_enabled": {
-        "name": "Extra usage enabled"
+      "extra_usage_remaining": {
+        "name": "Extra usage remaining"
       },
-      "extra_usage": {
-        "name": "Extra usage"
+      "extra_usage_reset_time": {
+        "name": "Extra usage reset time"
       },
-      "extra_usage_credits": {
-        "name": "Extra usage credit balance"
+      "extra_usage_balance": {
+        "name": "Extra usage balance"
+      },
+      "extra_usage_used": {
+        "name": "Extra usage used"
       },
       "extra_usage_limit": {
         "name": "Extra usage limit"
-      },
-      "codex_spark_usage": {
-        "name": "Spark usage"
-      },
-      "codex_spark_reset_time": {
-        "name": "Spark reset time"
-      },
-      "codex_spark_weekly_usage": {
-        "name": "Spark weekly usage"
-      },
-      "codex_spark_weekly_reset_time": {
-        "name": "Spark weekly reset time"
       }
     }
   }

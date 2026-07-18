@@ -18,7 +18,7 @@ from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, Upda
 from homeassistant.util import dt as dt_util
 
 from .const import (
-    CODEX_USAGE_URLS,
+    CODEX_USAGE_URL,
     CONF_TOKEN,
     CONF_UPDATE_INTERVAL,
     DEFAULT_SCAN_INTERVAL_SECONDS,
@@ -64,8 +64,7 @@ class CodexUsageCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         self.last_success_time: datetime | None = None
 
         update_interval = entry.options.get(
-            CONF_UPDATE_INTERVAL,
-            entry.data.get(CONF_UPDATE_INTERVAL, DEFAULT_SCAN_INTERVAL_SECONDS),
+            CONF_UPDATE_INTERVAL, DEFAULT_SCAN_INTERVAL_SECONDS
         )
 
         super().__init__(
@@ -88,7 +87,7 @@ class CodexUsageCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                 self.hass, self.entry, self.session
             )
             return await self._async_fetch_usage(token[CONF_ACCESS_TOKEN])
-        except CodexUsageAuthError as err:
+        except CodexUsageAuthError:
             try:
                 token = await async_refresh_entry_token(
                     self.hass,
@@ -114,33 +113,19 @@ class CodexUsageCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             "User-Agent": USER_AGENT,
         }
 
-        last_error: CodexUsageConnectionError | None = None
-
         try:
-            for index, usage_url in enumerate(CODEX_USAGE_URLS):
-                async with self.session.get(usage_url, headers=headers) as response:
-                    if response.status == 401:
-                        raise CodexUsageAuthError("Codex usage token is invalid")
-                    if response.status == 429:
-                        raise UpdateFailed(
-                            "Codex usage endpoint is rate limited",
-                            retry_after=_retry_after_seconds(
-                                response.headers.get("Retry-After")
-                            ),
-                        )
-                    if response.status == 404 and index < len(CODEX_USAGE_URLS) - 1:
-                        last_error = CodexUsageConnectionError(
-                            f"Codex usage endpoint not found: {usage_url}"
-                        )
-                        continue
-
-                    response.raise_for_status()
-                    data = await response.json(content_type=None)
-                    break
-            else:
-                raise last_error or CodexUsageConnectionError(
-                    "No Codex usage endpoint succeeded"
-                )
+            async with self.session.get(CODEX_USAGE_URL, headers=headers) as response:
+                if response.status == 401:
+                    raise CodexUsageAuthError("Codex usage token is invalid")
+                if response.status == 429:
+                    raise UpdateFailed(
+                        "Codex usage endpoint is rate limited",
+                        retry_after=_retry_after_seconds(
+                            response.headers.get("Retry-After")
+                        ),
+                    )
+                response.raise_for_status()
+                data = await response.json(content_type=None)
         except ClientResponseError as err:
             raise CodexUsageConnectionError(
                 f"Codex usage request failed with HTTP {err.status}"
@@ -154,15 +139,15 @@ class CodexUsageCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             raise CodexUsageConnectionError("Codex usage response was not an object")
 
         token_data = self.entry.data.get(CONF_TOKEN, {})
-        account_email = data.get("account_email") or data.get("email")
-        account_id = data.get("account_id")
-        if isinstance(token_data, dict) and token_data.get("account_email"):
-            account_email = token_data["account_email"]
-        if isinstance(token_data, dict) and token_data.get("account_id"):
-            account_id = token_data["account_id"]
+        account_email = (
+            token_data.get("account_email") if isinstance(token_data, dict) else None
+        )
+        account_id = (
+            token_data.get("account_id") if isinstance(token_data, dict) else None
+        )
 
         data["_meta"] = {
-            "api_endpoint": usage_url.removeprefix("https://"),
+            "api_endpoint": CODEX_USAGE_URL.removeprefix("https://"),
             "account_email": account_email,
             "account_id": account_id,
         }

@@ -164,41 +164,6 @@ class AuthHelpersTest(unittest.TestCase):
         self.assertIsNone(auth_helpers.seconds_value("-1"))
         self.assertEqual(auth_helpers.seconds_value("60"), 60)
 
-    def test_reauth_unique_id(self) -> None:
-        """Allow fallback unique IDs to improve to account email on reauth."""
-        self.assertEqual(
-            auth_helpers.reauth_unique_id(
-                "hass_codex_usage",
-                "user@example.com",
-                "hass_codex_usage",
-            ),
-            ("user@example.com", False),
-        )
-        self.assertEqual(
-            auth_helpers.reauth_unique_id(
-                "old@example.com",
-                "new@example.com",
-                "hass_codex_usage",
-            ),
-            ("new@example.com", True),
-        )
-        self.assertEqual(
-            auth_helpers.reauth_unique_id(
-                "old@example.com",
-                None,
-                "hass_codex_usage",
-            ),
-            ("old@example.com", True),
-        )
-        self.assertEqual(
-            auth_helpers.reauth_unique_id(
-                None,
-                None,
-                "hass_codex_usage",
-            ),
-            ("hass_codex_usage", False),
-        )
-
     def test_token_unique_id(self) -> None:
         """Prefer email unique IDs and use account IDs when email is absent."""
         self.assertEqual(
@@ -223,36 +188,6 @@ class AuthHelpersTest(unittest.TestCase):
         self.assertEqual(
             auth_helpers.token_unique_id({}, "hass_codex_usage"),
             "hass_codex_usage",
-        )
-
-    def test_reauth_unique_id_from_token(self) -> None:
-        """Match reauth against any stable token identifier."""
-        self.assertEqual(
-            auth_helpers.reauth_unique_id_from_token(
-                "account:account-123",
-                {
-                    "account_email": "user@example.com",
-                    "account_id": "account-123",
-                },
-                "hass_codex_usage",
-            ),
-            ("account:account-123", True),
-        )
-        self.assertEqual(
-            auth_helpers.reauth_unique_id_from_token(
-                "old@example.com",
-                {"account_email": "new@example.com"},
-                "hass_codex_usage",
-            ),
-            ("new@example.com", True),
-        )
-        self.assertEqual(
-            auth_helpers.reauth_unique_id_from_token(
-                "hass_codex_usage",
-                {"account_email": "user@example.com"},
-                "hass_codex_usage",
-            ),
-            ("user@example.com", False),
         )
 
     def test_email_from_id_token_handles_invalid_values(self) -> None:

@@ -1,5 +1,8 @@
 # hass-codex-usage
 
+[![Latest release](https://img.shields.io/github/v/release/zacala1/hass-codex-usage)](https://github.com/zacala1/hass-codex-usage/releases/latest)
+[![Validate](https://github.com/zacala1/hass-codex-usage/actions/workflows/validate.yml/badge.svg)](https://github.com/zacala1/hass-codex-usage/actions/workflows/validate.yml)
+
 Home Assistant custom integration for showing ChatGPT Codex subscription usage
 limits as sensor entities.
 
@@ -15,21 +18,36 @@ change without notice.
 
 ## Installation
 
-Install as a HACS custom repository:
+[![Open your Home Assistant instance and add this repository to HACS.](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=zacala1&repository=hass-codex-usage&category=integration)
+
+Install with the button above, or add the repository manually:
 
 1. Open HACS.
-2. Add this repository URL as a custom repository.
-3. Select category `Integration`.
-4. Install `Codex Usage`.
-5. Restart Home Assistant.
+2. Open the three-dot menu and select **Custom repositories**.
+3. Add `https://github.com/zacala1/hass-codex-usage`.
+4. Select category **Integration**.
+5. Select **Codex Usage**, then select **Download**.
+6. Restart Home Assistant.
 
-Manual installation is also possible by copying
-`custom_components/hass_codex_usage` into the Home Assistant
-`custom_components` directory, then restarting Home Assistant.
+Manual installation is also possible:
 
-HACS requires a public GitHub repository for normal custom-repository installs.
-While this repository is private, use manual installation or copy the integration
-directory directly into the target Home Assistant config directory.
+1. Download `hass_codex_usage.zip` from the
+   [latest release](https://github.com/zacala1/hass-codex-usage/releases/latest).
+2. Extract its `custom_components/hass_codex_usage` directory into the Home
+   Assistant `custom_components` directory.
+3. Restart Home Assistant.
+
+## Updating
+
+HACS tracks published GitHub releases and installs the packaged
+`hass_codex_usage.zip` asset. When a new version is available, install it from
+**Settings > Updates**, or open HACS and select **Redownload** for Codex Usage.
+Restart Home Assistant after the download.
+
+If HACS does not show a newly published version yet, open the repository's
+three-dot menu and select **Update information**, then check for the update
+again. Updating repository information only refreshes HACS metadata; it does not
+install the integration update.
 
 ## Configuration
 

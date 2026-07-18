@@ -18,6 +18,22 @@ change without notice.
 
 Requires Home Assistant 2025.12.0 or newer.
 
+## 한국어 안내
+
+설정 화면, 재인증 안내, 오류 메시지와 센서 이름은 한국어를 지원합니다.
+설치 후 예전 번역이 계속 보이면 Home Assistant를 재시작하세요. 사용자가 직접
+변경한 엔티티 이름은 새 번역으로 자동 변경되지 않을 수 있습니다.
+
+HACS에서 업데이트할 때는 저장소 메뉴의 **Update information**으로 새 버전
+정보를 불러온 뒤 **Download/Redownload**를 선택하고 Home Assistant를
+재시작하세요. 메타데이터 새로고침만으로는 통합 구성요소가 업데이트되지
+않습니다.
+
+잔여 사용량 센서는 남은 비율을 표시합니다. Codex 서버가 7일 제한만 반환하면
+주간 센서는 값을 표시하지만 5시간 세션 센서는 `Unknown`으로 표시될 수
+있습니다. 추가 사용 한도나 코드 리뷰 제한도 계정 응답에 해당 항목이 없으면
+`Unknown`이 정상이며, 임의의 값으로 채우지 않습니다.
+
 ## Installation
 
 [![Open your Home Assistant instance and add this repository to HACS.](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=zacala1&repository=hass-codex-usage&category=integration)
@@ -42,9 +58,10 @@ Manual installation is also possible:
 ## Updating
 
 HACS tracks published GitHub releases and installs the packaged
-`hass_codex_usage.zip` asset. When a new version is available, install it from
-**Settings > Updates**, or open HACS and select **Redownload** for Codex Usage.
-Restart Home Assistant after the download.
+`hass_codex_usage.zip` asset. When a new version is available, open the
+repository menu and select **Update information**, choose
+**Download/Redownload**, then restart Home Assistant. You can also install an
+offered update from **Settings > Updates**.
 
 If HACS does not show a newly published version yet, open the repository's
 three-dot menu and select **Update information**, then check for the update
@@ -80,6 +97,8 @@ setup again and use the new authorization link.
 
 If Home Assistant shows a translation placeholder error after updating the
 integration, restart Home Assistant so it reloads the integration translations.
+The integration provides English and 한국어 UI translations. Home Assistant may
+preserve entity names that the user customized manually.
 
 ## Sensors
 
@@ -102,14 +121,24 @@ include the account email when available, integration version, last successful
 update time, API endpoint, and relevant rate-limit window metadata when the
 endpoint provides it.
 
+The integration identifies the approximately five-hour session window and
+seven-day weekly window by `limit_window_seconds`. It does not assume that
+`primary_window` always means session or that `secondary_window` always means
+weekly. If the endpoint returns only a seven-day window, the weekly sensors use
+that window and the session sensors remain `Unknown` rather than reporting the
+same limit twice.
+
 Extra usage sensors expose the current `credits.balance` separately from the
 `spend_control.individual_limit` used amount, limit, remaining percentage, and
-reset time. If an account or plan does not return one of these fields, its fixed
-sensor remains available in the entity registry but its state is unavailable.
+reset time. If an account or plan does not return the individual-limit object,
+its fixed sensors remain in the entity registry but Home Assistant shows their
+state as `Unknown`/unavailable. A zero `credits.balance` does not imply that an
+individual extra-usage limit exists.
 
 Code review sensors read the current `codex_auto_review` entry in
 `additional_rate_limits`. If the endpoint does not return that entry, their
-states are unavailable.
+states are `Unknown`/unavailable. These unavailable states reflect missing
+optional backend data rather than a failure of the other sensors.
 
 ## Notes
 
@@ -122,17 +151,24 @@ states are unavailable.
 
 Run local validation:
 
-```bash
+```powershell
 python scripts/validate.py
+.venv/Scripts/python.exe scripts/validate.py
 ```
 
-Build the release zip:
+Validate and build the release ZIP:
 
 ```bash
+python scripts/build_release.py --check
 python scripts/build_release.py
 ```
 
 Before publishing a release, run validation, push `main`, then create and push a
-version tag such as `v0.3.0`. The tag must match the integration version. The
-release workflow reruns local validation, hassfest, and HACS validation before it
-builds and attaches `hass_codex_usage.zip` to the GitHub release.
+version tag named `v<manifest version>`. Do not reuse a version that was already
+published. The tag must match both `manifest.json` and `const.py`. The release
+workflow reruns local validation, tag validation, hassfest, and HACS validation
+before it builds and attaches `hass_codex_usage.zip` to the GitHub release.
+
+After publication, verify that GitHub marks the intended version as Latest, the
+published ZIP contains only the reviewed root-level integration files, and its
+SHA-256 digest matches a fresh local deterministic build.

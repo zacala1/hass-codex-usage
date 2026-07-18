@@ -21,6 +21,7 @@ assert USAGE_SPEC is not None and USAGE_SPEC.loader is not None
 usage = importlib.util.module_from_spec(USAGE_SPEC)
 USAGE_SPEC.loader.exec_module(usage)
 PLACEHOLDER_RE = re.compile(r"{([A-Za-z_][A-Za-z0-9_]*)}")
+MARKDOWN_URL_LINK_RE = re.compile(r"\[[^\]]+\]\(\{url\}\)")
 
 
 class TranslationTest(unittest.TestCase):
@@ -28,15 +29,18 @@ class TranslationTest(unittest.TestCase):
 
     def test_oauth_descriptions_use_supported_link_placeholder(self) -> None:
         """Keep OAuth link copy aligned with config-flow placeholders."""
+        # Given: every localized config-flow description.
         for path, data in self._translation_data():
             with self.subTest(path=path.name):
                 steps = data["config"]["step"]
                 for step_id in ("user", "reauth_confirm"):
+                    # When: its placeholders and Markdown link are inspected.
                     description = steps[step_id]["description"]
                     placeholders = set(PLACEHOLDER_RE.findall(description))
 
+                    # Then: localized link text may vary, but its URL contract cannot.
                     self.assertIn("url", placeholders)
-                    self.assertIn("[open link]({url})", description)
+                    self.assertRegex(description, MARKDOWN_URL_LINK_RE)
                     self.assertNotIn("auth_url", placeholders)
                     self.assertLessEqual(placeholders, {"url"})
 

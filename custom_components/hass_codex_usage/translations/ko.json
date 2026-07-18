@@ -3,37 +3,37 @@
   "config": {
     "step": {
       "user": {
-        "title": "Codex 사용량 인증",
-        "description": "인증하려면 [open link]({url})를 열고 ChatGPT 계정으로 로그인하세요.\n\n승인 후 브라우저에 localhost 연결 오류가 표시될 수 있습니다. 정상입니다. 브라우저 주소창의 전체 URL을 복사해서 아래에 붙여넣으세요.",
+        "title": "Codex 계정 연결",
+        "description": "[인증 페이지 열기]({url})를 눌러 ChatGPT 계정으로 로그인하세요.\n\n승인을 마치면 브라우저에 localhost 연결 오류가 나타날 수 있습니다. 정상적인 과정입니다. 브라우저 주소 표시줄의 전체 URL을 복사하여 아래 입력란에 붙여넣으세요.",
         "data": {
           "authorization_code": "인증 코드 또는 리디렉션 URL"
         }
       },
       "reauth_confirm": {
-        "title": "Codex 사용량 재인증",
-        "description": "Codex 사용량 통합에서 ChatGPT 계정 재인증이 필요합니다.\n\n[open link]({url})를 열고 다시 로그인하세요. 승인 후 브라우저에 localhost 연결 오류가 표시될 수 있습니다. 정상입니다. 브라우저 주소창의 전체 URL을 복사해서 아래에 붙여넣으세요.",
+        "title": "Codex 계정 다시 연결",
+        "description": "ChatGPT 계정을 다시 인증해야 합니다.\n\n[인증 페이지 열기]({url})를 눌러 로그인하세요. 승인을 마치면 브라우저에 localhost 연결 오류가 나타날 수 있습니다. 정상적인 과정입니다. 브라우저 주소 표시줄의 전체 URL을 복사하여 아래 입력란에 붙여넣으세요.",
         "data": {
           "authorization_code": "인증 코드 또는 리디렉션 URL"
         }
       }
     },
     "error": {
-      "cannot_connect": "OpenAI에 연결할 수 없습니다.",
-      "invalid_auth": "OpenAI가 인증 코드를 거부했습니다.",
-      "missing_code": "인증 코드 또는 리디렉션 URL을 입력하세요.",
-      "unknown": "예상하지 못한 오류"
+      "cannot_connect": "OpenAI에 연결할 수 없습니다. 잠시 후 다시 시도해 주세요.",
+      "invalid_auth": "인증 코드가 올바르지 않거나 만료되었습니다. 다시 인증해 주세요.",
+      "missing_code": "인증 코드 또는 리디렉션 URL을 입력해 주세요.",
+      "unknown": "예기치 않은 오류가 발생했습니다."
     },
     "abort": {
-      "already_configured": "이 ChatGPT 계정은 이미 설정되어 있습니다.",
-      "reauth_successful": "재인증이 완료되었습니다."
+      "already_configured": "이미 설정된 ChatGPT 계정입니다.",
+      "reauth_successful": "계정 재인증을 완료했습니다."
     }
   },
   "options": {
     "step": {
       "init": {
-        "title": "Codex 사용량 옵션",
+        "title": "Codex 사용량 설정",
         "data": {
-          "update_interval": "업데이트 주기(초)"
+          "update_interval": "업데이트 간격(초)"
         }
       }
     }
@@ -41,40 +41,40 @@
   "entity": {
     "sensor": {
       "session_usage_remaining": {
-        "name": "세션 잔여량"
+        "name": "세션 잔여 사용량"
       },
       "session_reset_time": {
-        "name": "세션 초기화 시간"
+        "name": "세션 한도 초기화 시각"
       },
       "weekly_usage_remaining": {
-        "name": "주간 잔여량"
+        "name": "주간 잔여 사용량"
       },
       "weekly_reset_time": {
-        "name": "주간 초기화 시간"
+        "name": "주간 한도 초기화 시각"
       },
       "plan": {
-        "name": "요금제"
+        "name": "구독 요금제"
       },
       "code_review_usage_remaining": {
-        "name": "코드 리뷰 잔여량"
+        "name": "코드 리뷰 잔여 사용량"
       },
       "code_review_reset_time": {
-        "name": "코드 리뷰 초기화 시간"
+        "name": "코드 리뷰 한도 초기화 시각"
       },
       "extra_usage_remaining": {
-        "name": "추가 사용량 잔여량"
+        "name": "추가 사용 가능량"
       },
       "extra_usage_reset_time": {
-        "name": "추가 사용량 초기화 시간"
+        "name": "추가 사용 한도 초기화 시각"
       },
       "extra_usage_balance": {
-        "name": "추가 사용량 잔액"
+        "name": "추가 크레딧 잔액"
       },
       "extra_usage_used": {
-        "name": "추가 사용량 사용분"
+        "name": "사용한 추가 크레딧"
       },
       "extra_usage_limit": {
-        "name": "추가 사용량 한도"
+        "name": "추가 크레딧 한도"
       }
     }
   }

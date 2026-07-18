@@ -71,6 +71,56 @@ class UsageParsingTest(unittest.TestCase):
             },
         )
 
+    def test_windows_are_classified_by_duration_not_position(self) -> None:
+        # Given: the API puts the weekly limit first and the five-hour limit second.
+        payload = {
+            "rate_limit": {
+                "primary_window": {
+                    "used_percent": 94,
+                    "limit_window_seconds": 7 * 24 * 60 * 60,
+                },
+                "secondary_window": {
+                    "used_percent": 40,
+                    "limit_window_seconds": 5 * 60 * 60,
+                },
+            }
+        }
+
+        # When: both fixed sensor values are parsed.
+        values = (
+            usage.sensor_value(payload, usage.SESSION_USAGE_REMAINING),
+            usage.sensor_value(payload, usage.WEEKLY_USAGE_REMAINING),
+        )
+
+        # Then: duration, rather than primary/secondary position, selects them.
+        self.assertEqual(values, (60, 6))
+
+    def test_weekly_only_primary_window_is_not_reported_as_session(self) -> None:
+        # Given: the account receives only one seven-day window in primary position.
+        payload = {
+            "rate_limit": {
+                "primary_window": {
+                    "used_percent": 25,
+                    "limit_window_seconds": 7 * 24 * 60 * 60,
+                    "reset_at": 1784937600,
+                }
+            }
+        }
+
+        # When: session and weekly values are parsed.
+        values = (
+            usage.sensor_value(payload, usage.SESSION_USAGE_REMAINING),
+            usage.sensor_value(payload, usage.WEEKLY_USAGE_REMAINING),
+            usage.sensor_value(payload, usage.SESSION_RESET_TIME),
+            usage.sensor_value(payload, usage.WEEKLY_RESET_TIME),
+        )
+
+        # Then: the weekly value is shown once and session remains unavailable.
+        self.assertEqual(
+            values,
+            (None, 75, None, usage.parse_timestamp(1784937600)),
+        )
+
     def test_code_review_uses_exact_current_feature_name(self) -> None:
         payload = {
             "additional_rate_limits": [

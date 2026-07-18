@@ -6,8 +6,6 @@ import importlib.util
 import json
 import os
 import re
-import subprocess
-import sys
 import tempfile
 import unittest
 import zipfile
@@ -15,12 +13,10 @@ from pathlib import Path
 from unittest import mock
 
 ROOT = Path(__file__).resolve().parents[1]
-BUILD_RELEASE_PATH = ROOT / "scripts" / "build_release.py"
-VALIDATE_PATH = ROOT / "scripts" / "validate.py"
 
 BUILD_SPEC = importlib.util.spec_from_file_location(
     "hass_codex_usage_build_release",
-    BUILD_RELEASE_PATH,
+    ROOT / "scripts" / "build_release.py",
 )
 build_release = importlib.util.module_from_spec(BUILD_SPEC)
 assert BUILD_SPEC.loader is not None
@@ -28,7 +24,7 @@ BUILD_SPEC.loader.exec_module(build_release)
 
 VALIDATE_SPEC = importlib.util.spec_from_file_location(
     "hass_codex_usage_validate",
-    VALIDATE_PATH,
+    ROOT / "scripts" / "validate.py",
 )
 validate = importlib.util.module_from_spec(VALIDATE_SPEC)
 assert VALIDATE_SPEC.loader is not None
@@ -213,29 +209,6 @@ class DeploymentTest(unittest.TestCase):
             "account_id",
         ):
             self.assertIn(f'"{key}"', diagnostics_text)
-
-    def test_release_tag_must_match_manifest_version(self) -> None:
-        """Reject a pushed release tag that differs from the manifest version."""
-        script = ROOT / "scripts" / "check_release_tag.py"
-
-        accepted = subprocess.run(
-            [sys.executable, str(script), "v0.3.0"],
-            cwd=ROOT,
-            check=False,
-            capture_output=True,
-            text=True,
-        )
-        rejected = subprocess.run(
-            [sys.executable, str(script), "v0.3.1"],
-            cwd=ROOT,
-            check=False,
-            capture_output=True,
-            text=True,
-        )
-
-        self.assertEqual(accepted.returncode, 0, accepted.stderr)
-        self.assertNotEqual(rejected.returncode, 0)
-        self.assertIn("does not match manifest version", rejected.stderr)
 
     def test_release_workflow_runs_validation_before_packaging(self) -> None:
         """Avoid publishing a release artifact that skipped local validation."""

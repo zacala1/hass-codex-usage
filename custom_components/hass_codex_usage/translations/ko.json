@@ -75,6 +75,9 @@
       },
       "extra_usage_limit": {
         "name": "추가 크레딧 한도"
+      },
+      "rate_limit_reset_credits_available": {
+        "name": "사용 가능한 한도 초기화 크레딧"
       }
     }
   }

@@ -22,6 +22,7 @@ EXTRA_USAGE_RESET_TIME = "extra_usage_reset_time"
 EXTRA_USAGE_BALANCE = "extra_usage_balance"
 EXTRA_USAGE_USED = "extra_usage_used"
 EXTRA_USAGE_LIMIT = "extra_usage_limit"
+RATE_LIMIT_RESET_CREDITS_AVAILABLE = "rate_limit_reset_credits_available"
 SENSOR_KEYS = (
     SESSION_USAGE_REMAINING,
     SESSION_RESET_TIME,
@@ -35,6 +36,7 @@ SENSOR_KEYS = (
     EXTRA_USAGE_BALANCE,
     EXTRA_USAGE_USED,
     EXTRA_USAGE_LIMIT,
+    RATE_LIMIT_RESET_CREDITS_AVAILABLE,
 )
 
 
@@ -54,11 +56,12 @@ def sensor_value(data: dict[str, Any], key: str) -> Any:
         value = data.get("plan_type")
         return value if isinstance(value, str) and value else None
 
-    code_review = _code_review_rate_limit(data)
+    code_review = _mapping(_code_review_entry(data).get("rate_limit"))
+    code_review_window = _mapping(code_review.get("primary_window"))
     if key == CODE_REVIEW_USAGE_REMAINING:
-        return _window_remaining(code_review, "primary_window")
+        return _window_remaining_value(code_review_window)
     if key == CODE_REVIEW_RESET_TIME:
-        return _window_reset(code_review, "primary_window")
+        return _window_reset_value(code_review_window)
 
     individual = _individual_limit(data)
     if key == EXTRA_USAGE_REMAINING:
@@ -71,6 +74,11 @@ def sensor_value(data: dict[str, Any], key: str) -> Any:
         return _credit_number(individual.get("limit"))
     if key == EXTRA_USAGE_BALANCE:
         return _credit_number(_mapping(data.get("credits")).get("balance"))
+    if key == RATE_LIMIT_RESET_CREDITS_AVAILABLE:
+        value = _mapping(data.get("rate_limit_reset_credits")).get(
+            "available_count"
+        )
+        return value if type(value) is int and value >= 0 else None
     return None
 
 
@@ -79,14 +87,20 @@ def sensor_attributes(data: dict[str, Any], key: str) -> dict[str, Any]:
     rate_limit = _mapping(data.get("rate_limit"))
     session_window, weekly_window = _subscription_windows(rate_limit)
     if key in (SESSION_USAGE_REMAINING, SESSION_RESET_TIME):
-        return _window_attributes_for_value(rate_limit, session_window)
+        attributes = _window_attributes_for_value(rate_limit, session_window)
+        _copy_reached_type(data, attributes)
+        return attributes
     if key in (WEEKLY_USAGE_REMAINING, WEEKLY_RESET_TIME):
-        return _window_attributes_for_value(rate_limit, weekly_window)
+        attributes = _window_attributes_for_value(rate_limit, weekly_window)
+        _copy_reached_type(data, attributes)
+        return attributes
 
     code_review = _code_review_entry(data)
     if key in (CODE_REVIEW_USAGE_REMAINING, CODE_REVIEW_RESET_TIME):
-        attributes = _window_attributes(
-            _mapping(code_review.get("rate_limit")), "primary_window"
+        code_review_rate_limit = _mapping(code_review.get("rate_limit"))
+        attributes = _window_attributes_for_value(
+            code_review_rate_limit,
+            _mapping(code_review_rate_limit.get("primary_window")),
         )
         _copy_scalars(code_review, attributes, ("metered_feature", "limit_name"))
         return attributes
@@ -123,6 +137,9 @@ def sensor_attributes(data: dict[str, Any], key: str) -> dict[str, Any]:
         attributes = {}
         _copy_scalars(credits, attributes, ("has_credits", "unlimited", "balance"))
         return attributes
+    if key == RATE_LIMIT_RESET_CREDITS_AVAILABLE:
+        count = sensor_value(data, RATE_LIMIT_RESET_CREDITS_AVAILABLE)
+        return {"available_count": count} if count is not None else {}
     return {}
 
 
@@ -141,24 +158,14 @@ def parse_timestamp(value: Any) -> datetime | None:
     return None
 
 
-def _window_remaining(rate_limit: dict[str, Any], name: str) -> float | int | None:
-    return _window_remaining_value(_mapping(rate_limit.get(name)))
-
-
 def _window_remaining_value(window: dict[str, Any]) -> float | int | None:
-    """Return remaining percentage from one selected window."""
     used = _number(window.get("used_percent"))
     if used is None:
         return None
     return _clamp_percent(100 - used)
 
 
-def _window_reset(rate_limit: dict[str, Any], name: str) -> datetime | None:
-    return _window_reset_value(_mapping(rate_limit.get(name)))
-
-
 def _window_reset_value(window: dict[str, Any]) -> datetime | None:
-    """Return reset time from one selected window."""
     return parse_timestamp(window.get("reset_at"))
 
 
@@ -199,34 +206,26 @@ def _mapping(value: Any) -> dict[str, Any]:
 def _subscription_windows(
     rate_limit: dict[str, Any],
 ) -> tuple[dict[str, Any], dict[str, Any]]:
-    """Select session and weekly windows by duration before position."""
     primary = _mapping(rate_limit.get("primary_window"))
     secondary = _mapping(rate_limit.get("secondary_window"))
     windows = (primary, secondary)
     session = _window_by_duration(windows, FIVE_HOUR_WINDOW_SECONDS)
     weekly = _window_by_duration(windows, WEEKLY_WINDOW_SECONDS)
 
-    if not session:
-        if primary and not _matches_window_duration(
-            primary, WEEKLY_WINDOW_SECONDS
-        ):
-            session = primary
-        elif (
-            _matches_window_duration(primary, WEEKLY_WINDOW_SECONDS)
-            and secondary
-            and not _matches_window_duration(secondary, WEEKLY_WINDOW_SECONDS)
-        ):
-            session = secondary
-
-    if not weekly and secondary and secondary is not session:
+    if not session and _duration_is_missing(primary) and primary is not weekly:
+        session = primary
+    if not weekly and _duration_is_missing(secondary) and secondary is not session:
         weekly = secondary
+    if not session and weekly is primary and _duration_is_missing(secondary):
+        session = secondary
+    if not weekly and session is secondary and _duration_is_missing(primary):
+        weekly = primary
     return session, weekly
 
 
 def _window_by_duration(
     windows: tuple[dict[str, Any], dict[str, Any]], expected_seconds: int
 ) -> dict[str, Any]:
-    """Return the first window whose duration matches the expected period."""
     for window in windows:
         if _matches_window_duration(window, expected_seconds):
             return window
@@ -234,13 +233,16 @@ def _window_by_duration(
 
 
 def _matches_window_duration(window: dict[str, Any], expected_seconds: int) -> bool:
-    """Match a backend window using Codex's five-percent tolerance."""
     duration = _number(window.get("limit_window_seconds"))
     if duration is None:
         return False
     lower = expected_seconds * (1 - WINDOW_DURATION_TOLERANCE)
     upper = expected_seconds * (1 + WINDOW_DURATION_TOLERANCE)
     return lower <= duration <= upper
+
+
+def _duration_is_missing(window: dict[str, Any]) -> bool:
+    return bool(window) and _number(window.get("limit_window_seconds")) is None
 
 
 def _code_review_entry(data: dict[str, Any]) -> dict[str, Any]:
@@ -254,27 +256,14 @@ def _code_review_entry(data: dict[str, Any]) -> dict[str, Any]:
     return {}
 
 
-def _code_review_rate_limit(data: dict[str, Any]) -> dict[str, Any]:
-    return _mapping(_code_review_entry(data).get("rate_limit"))
-
-
 def _individual_limit(data: dict[str, Any]) -> dict[str, Any]:
     spend_control = _mapping(data.get("spend_control"))
     return _mapping(spend_control.get("individual_limit"))
 
 
-def _window_attributes(
-    rate_limit: dict[str, Any], name: str
-) -> dict[str, Any]:
-    return _window_attributes_for_value(
-        rate_limit, _mapping(rate_limit.get(name))
-    )
-
-
 def _window_attributes_for_value(
     rate_limit: dict[str, Any], window: dict[str, Any]
 ) -> dict[str, Any]:
-    """Return allowlisted attributes for one selected window."""
     attributes: dict[str, Any] = {}
     _copy_scalars(rate_limit, attributes, ("allowed", "limit_reached"))
     _copy_scalars(
@@ -294,3 +283,11 @@ def _copy_scalars(
             not isinstance(value, float) or math.isfinite(value)
         ):
             target[field] = value
+
+
+def _copy_reached_type(
+    data: dict[str, Any], attributes: dict[str, Any]
+) -> None:
+    reached_type = _mapping(data.get("rate_limit_reached_type")).get("type")
+    if isinstance(reached_type, str) and reached_type:
+        attributes["rate_limit_reached_type"] = reached_type

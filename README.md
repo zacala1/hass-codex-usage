@@ -61,7 +61,7 @@ HACS tracks published GitHub releases and installs the packaged
 `hass_codex_usage.zip` asset. When a new version is available, open the
 repository menu and select **Update information**, choose
 **Download/Redownload**, then restart Home Assistant. You can also install an
-offered update from **Settings > Updates**.
+available update from **Settings > Updates**.
 
 If HACS does not show a newly published version yet, open the repository's
 three-dot menu and select **Update information**, then check for the update
@@ -97,7 +97,7 @@ setup again and use the new authorization link.
 
 If Home Assistant shows a translation placeholder error after updating the
 integration, restart Home Assistant so it reloads the integration translations.
-The integration provides English and 한국어 UI translations. Home Assistant may
+The integration provides English and Korean UI translations. Home Assistant may
 preserve entity names that the user customized manually.
 
 ## Sensors
@@ -114,6 +114,7 @@ preserve entity names that the user customized manually.
 - `sensor.codex_extra_usage_balance`
 - `sensor.codex_extra_usage_used`
 - `sensor.codex_extra_usage_limit`
+- `sensor.codex_rate_limit_reset_credits_available`
 
 Percentage sensors report the amount remaining, matching the current Codex usage
 display. Reset sensors report Home Assistant timestamp values. Sensor attributes
@@ -121,12 +122,14 @@ include the account email when available, integration version, last successful
 update time, API endpoint, and relevant rate-limit window metadata when the
 endpoint provides it.
 
-The integration identifies the approximately five-hour session window and
-seven-day weekly window by `limit_window_seconds`. It does not assume that
-`primary_window` always means session or that `secondary_window` always means
-weekly. If the endpoint returns only a seven-day window, the weekly sensors use
-that window and the session sensors remain `Unknown` rather than reporting the
-same limit twice.
+The integration identifies an approximately five-hour session window and an
+approximately seven-day weekly window by `limit_window_seconds`. It does not
+assume that `primary_window` always means session or that `secondary_window`
+always means weekly. If the endpoint returns only a seven-day window, the weekly
+sensors use that window and the session sensors remain `Unknown` rather than
+reporting the same limit twice. Known daily, monthly, and annual windows are not
+relabelled as session or weekly limits; the corresponding fixed sensors remain
+`Unknown`.
 
 Extra usage sensors expose the current `credits.balance` separately from the
 `spend_control.individual_limit` used amount, limit, remaining percentage, and
@@ -139,6 +142,15 @@ Code review sensors read the current `codex_auto_review` entry in
 `additional_rate_limits`. If the endpoint does not return that entry, their
 states are `Unknown`/unavailable. These unavailable states reflect missing
 optional backend data rather than a failure of the other sensors.
+
+The `sensor.codex_rate_limit_reset_credits_available` sensor reports the number
+of available rate-limit reset credits from
+`rate_limit_reset_credits.available_count`. When at least one credit is
+available, the integration also reads the current reset-credit detail endpoint
+and exposes its allowlisted credit details as sensor attributes. A detail
+request failure does not make the main usage sensors unavailable. The session
+and weekly sensor attributes also expose the current `rate_limit_reached_type`
+value when the backend returns it.
 
 ## Notes
 

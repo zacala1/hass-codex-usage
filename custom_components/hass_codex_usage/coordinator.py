@@ -17,9 +17,10 @@ from homeassistant.helpers.aiohttp_client import async_get_clientsession
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
 from homeassistant.util import dt as dt_util
 
+from .auth_helpers import chatgpt_request_headers
 from .const import (
+    CODEX_RATE_LIMIT_RESET_CREDITS_URL,
     CODEX_USAGE_URL,
-    CONF_TOKEN,
     CONF_UPDATE_INTERVAL,
     DEFAULT_SCAN_INTERVAL_SECONDS,
     DOMAIN,
@@ -33,6 +34,15 @@ from .oauth import (
 )
 
 _LOGGER = logging.getLogger(__name__)
+_RESET_CREDIT_DETAIL_FIELDS = (
+    "id",
+    "reset_type",
+    "status",
+    "granted_at",
+    "expires_at",
+    "title",
+    "description",
+)
 
 
 def _retry_after_seconds(value: str | None) -> float | None:
@@ -42,12 +52,10 @@ def _retry_after_seconds(value: str | None) -> float | None:
     try:
         return max(0.0, float(value))
     except ValueError:
-        pass
-
-    try:
-        retry_at = parsedate_to_datetime(value)
-    except (TypeError, ValueError):
-        return None
+        try:
+            retry_at = parsedate_to_datetime(value)
+        except (TypeError, ValueError):
+            return None
 
     return max(0.0, (retry_at - dt_util.utcnow()).total_seconds())
 
@@ -86,7 +94,7 @@ class CodexUsageCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             token = await async_ensure_token_valid(
                 self.hass, self.entry, self.session
             )
-            return await self._async_fetch_usage(token[CONF_ACCESS_TOKEN])
+            return await self._async_fetch_usage(token)
         except CodexUsageAuthError:
             try:
                 token = await async_refresh_entry_token(
@@ -95,22 +103,24 @@ class CodexUsageCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                     self.session,
                     force=True,
                 )
-                return await self._async_fetch_usage(token[CONF_ACCESS_TOKEN])
+                return await self._async_fetch_usage(token)
             except CodexUsageAuthError as refresh_err:
                 raise ConfigEntryAuthFailed(refresh_err) from refresh_err
             except CodexUsageConnectionError as refresh_err:
                 raise UpdateFailed(refresh_err) from refresh_err
-            except Exception as refresh_err:  # noqa: BLE001
-                raise UpdateFailed(refresh_err) from refresh_err
         except CodexUsageConnectionError as err:
             raise UpdateFailed(err) from err
 
-    async def _async_fetch_usage(self, access_token: str) -> dict[str, Any]:
+    async def _async_fetch_usage(self, token: dict[str, Any]) -> dict[str, Any]:
         """Fetch usage data from ChatGPT."""
+        access_token = token.get(CONF_ACCESS_TOKEN)
+        if not isinstance(access_token, str) or not access_token:
+            raise CodexUsageAuthError("Missing access token")
         headers = {
             "Authorization": f"Bearer {access_token}",
             "Accept": "application/json",
             "User-Agent": USER_AGENT,
+            **chatgpt_request_headers(token),
         }
 
         try:
@@ -138,18 +148,67 @@ class CodexUsageCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         if not isinstance(data, dict):
             raise CodexUsageConnectionError("Codex usage response was not an object")
 
-        token_data = self.entry.data.get(CONF_TOKEN, {})
-        account_email = (
-            token_data.get("account_email") if isinstance(token_data, dict) else None
-        )
-        account_id = (
-            token_data.get("account_id") if isinstance(token_data, dict) else None
-        )
-
-        data["_meta"] = {
+        metadata = {
             "api_endpoint": CODEX_USAGE_URL.removeprefix("https://"),
-            "account_email": account_email,
-            "account_id": account_id,
+            "account_email": token.get("account_email"),
+            "account_id": token.get("account_id"),
         }
+        if _has_available_reset_credit(data):
+            details = await self._async_fetch_reset_credit_details(headers)
+            if details is not None:
+                metadata["rate_limit_reset_credits"] = details
+        data["_meta"] = metadata
 
         return data
+
+    async def _async_fetch_reset_credit_details(
+        self, headers: dict[str, str]
+    ) -> dict[str, Any] | None:
+        """Fetch optional reset-credit details without failing usage polling."""
+        try:
+            async with self.session.get(
+                CODEX_RATE_LIMIT_RESET_CREDITS_URL, headers=headers
+            ) as response:
+                response.raise_for_status()
+                details = await response.json(content_type=None)
+        except (ClientError, ValueError):
+            _LOGGER.debug("Unable to fetch optional rate-limit reset-credit details")
+            return None
+        return _sanitize_reset_credit_details(details)
+
+
+def _has_available_reset_credit(data: dict[str, Any]) -> bool:
+    """Return whether the usage summary reports a usable reset credit."""
+    summary = data.get("rate_limit_reset_credits")
+    if not isinstance(summary, dict):
+        return False
+    available_count = summary.get("available_count")
+    return type(available_count) is int and available_count > 0
+
+
+def _sanitize_reset_credit_details(value: Any) -> dict[str, Any] | None:
+    """Allow only current scalar reset-credit detail fields."""
+    if not isinstance(value, dict):
+        return None
+    sanitized: dict[str, Any] = {}
+    available_count = value.get("available_count")
+    if type(available_count) is int and available_count >= 0:
+        sanitized["available_count"] = available_count
+
+    credits = value.get("credits")
+    if not isinstance(credits, list):
+        return sanitized
+    sanitized_credits = []
+    for credit in credits:
+        if not isinstance(credit, dict):
+            continue
+        item = {
+            field: credit[field]
+            for field in _RESET_CREDIT_DETAIL_FIELDS
+            if isinstance(credit.get(field), str) and credit[field]
+        }
+        if item:
+            sanitized_credits.append(item)
+    if sanitized_credits:
+        sanitized["credits"] = sanitized_credits
+    return sanitized

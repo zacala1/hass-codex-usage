@@ -30,6 +30,7 @@ from .usage import (
     EXTRA_USAGE_RESET_TIME,
     EXTRA_USAGE_USED,
     PLAN,
+    RATE_LIMIT_RESET_CREDITS_AVAILABLE,
     SENSOR_KEYS,
     SESSION_RESET_TIME,
     SESSION_USAGE_REMAINING,
@@ -126,6 +127,15 @@ SENSOR_DESCRIPTIONS: tuple[CodexUsageSensorDescription, ...] = (
         state_class=SensorStateClass.MEASUREMENT,
         value_fn=lambda data: sensor_value(data, EXTRA_USAGE_LIMIT),
     ),
+    CodexUsageSensorDescription(
+        key=RATE_LIMIT_RESET_CREDITS_AVAILABLE,
+        translation_key="rate_limit_reset_credits_available",
+        native_unit_of_measurement="credits",
+        state_class=SensorStateClass.MEASUREMENT,
+        value_fn=lambda data: sensor_value(
+            data, RATE_LIMIT_RESET_CREDITS_AVAILABLE
+        ),
+    ),
 )
 
 assert tuple(description.key for description in SENSOR_DESCRIPTIONS) == SENSOR_KEYS
@@ -197,4 +207,8 @@ class CodexUsageSensor(CoordinatorEntity[CodexUsageCoordinator], SensorEntity):
         attributes.update(
             sensor_attributes(data, self.entity_description.key)
         )
+        if self.entity_description.key == RATE_LIMIT_RESET_CREDITS_AVAILABLE:
+            reset_credit_details = meta.get("rate_limit_reset_credits")
+            if isinstance(reset_credit_details, dict):
+                attributes.update(reset_credit_details)
         return attributes

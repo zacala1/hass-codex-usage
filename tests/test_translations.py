@@ -70,6 +70,35 @@ class TranslationTest(unittest.TestCase):
                     set(data["entity"]["sensor"]), set(usage.SENSOR_KEYS)
                 )
 
+    def test_english_copy_is_native_and_unambiguous(self) -> None:
+        """Use natural English that names each measured quantity."""
+        strings = json.loads(TRANSLATION_FILES[0].read_text(encoding="utf-8"))
+        english = json.loads(TRANSLATION_FILES[1].read_text(encoding="utf-8"))
+
+        self.assertEqual(strings, english)
+        self.assertIn(
+            "[Open the authentication page]({url})",
+            english["config"]["step"]["user"]["description"],
+        )
+        self.assertEqual(
+            english["entity"]["sensor"]["session_usage_remaining"]["name"],
+            "Session usage remaining",
+        )
+        self.assertEqual(
+            english["entity"]["sensor"]["weekly_usage_remaining"]["name"],
+            "Weekly usage remaining",
+        )
+        self.assertEqual(
+            english["entity"]["sensor"]["extra_usage_used"]["name"],
+            "Extra credits used",
+        )
+        self.assertEqual(
+            english["entity"]["sensor"][
+                "rate_limit_reset_credits_available"
+            ]["name"],
+            "Available rate limit reset credits",
+        )
+
     @staticmethod
     def _translation_data() -> list[tuple[Path, dict[str, Any]]]:
         """Load translation files."""

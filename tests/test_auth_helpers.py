@@ -8,6 +8,7 @@ import importlib.util
 import json
 import unittest
 from pathlib import Path
+from typing import Any
 from urllib.parse import parse_qs, urlparse
 
 AUTH_HELPERS_PATH = (
@@ -88,8 +89,15 @@ class AuthHelpersTest(unittest.TestCase):
         """Normalize token data while preserving refresh details."""
         id_token = self._id_token(
             {
-                "email": "User@Example.COM",
-                "sub": "account-123",
+                "sub": "user-subject",
+                "https://api.openai.com/profile": {
+                    "email": "User@Example.COM",
+                },
+                "https://api.openai.com/auth": {
+                    "chatgpt_user_id": "user-123",
+                    "chatgpt_account_id": "account-123",
+                    "chatgpt_account_is_fedramp": True,
+                },
             }
         )
         token = auth_helpers.normalize_token(
@@ -105,6 +113,8 @@ class AuthHelpersTest(unittest.TestCase):
         self.assertEqual(token["token_type"], "Bearer")
         self.assertEqual(token["account_email"], "user@example.com")
         self.assertEqual(token["account_id"], "account-123")
+        self.assertEqual(token["chatgpt_user_id"], "user-123")
+        self.assertIs(token["chatgpt_account_is_fedramp"], True)
         self.assertGreater(token["expires_at"], 0)
 
     def test_normalize_token_ignores_invalid_expires_in(self) -> None:
@@ -179,7 +189,14 @@ class AuthHelpersTest(unittest.TestCase):
         self.assertEqual(
             auth_helpers.token_unique_id(
                 {
-                    "id_token": self._id_token({"sub": "account-123"}),
+                    "id_token": self._id_token(
+                        {
+                            "sub": "user-subject",
+                            "https://api.openai.com/auth": {
+                                "chatgpt_account_id": "account-123"
+                            },
+                        }
+                    ),
                 },
                 "hass_codex_usage",
             ),
@@ -190,6 +207,50 @@ class AuthHelpersTest(unittest.TestCase):
             "hass_codex_usage",
         )
 
+    def test_subject_is_not_treated_as_chatgpt_account_id(self) -> None:
+        """Keep the user subject distinct from the selected workspace ID."""
+        id_token = self._id_token({"sub": "user-subject"})
+
+        self.assertIsNone(auth_helpers.account_id_from_id_token(id_token))
+        self.assertEqual(
+            auth_helpers.token_unique_id(
+                {"id_token": id_token},
+                "hass_codex_usage",
+            ),
+            "hass_codex_usage",
+        )
+
+    def test_chatgpt_routing_headers_are_conditional(self) -> None:
+        """Send workspace and FedRAMP headers only when the token requires them."""
+        self.assertEqual(auth_helpers.chatgpt_request_headers({}), {})
+        self.assertEqual(
+            auth_helpers.chatgpt_request_headers(
+                {
+                    "account_id": "account-123",
+                    "chatgpt_account_is_fedramp": False,
+                }
+            ),
+            {"ChatGPT-Account-ID": "account-123"},
+        )
+        self.assertEqual(
+            auth_helpers.chatgpt_request_headers(
+                {
+                    "account_id": "account-123",
+                    "chatgpt_account_is_fedramp": True,
+                }
+            ),
+            {
+                "ChatGPT-Account-ID": "account-123",
+                "X-OpenAI-Fedramp": "true",
+            },
+        )
+        self.assertIs(
+            auth_helpers.chatgpt_account_is_fedramp_from_id_token(
+                self._id_token({"sub": "user-subject"})
+            ),
+            False,
+        )
+
     def test_email_from_id_token_handles_invalid_values(self) -> None:
         """Ignore invalid ID token values."""
         self.assertIsNone(auth_helpers.email_from_id_token(None))
@@ -197,7 +258,7 @@ class AuthHelpersTest(unittest.TestCase):
         self.assertIsNone(auth_helpers.email_from_id_token(self._id_token({})))
 
     @staticmethod
-    def _id_token(payload: dict[str, str]) -> str:
+    def _id_token(payload: dict[str, Any]) -> str:
         """Create an unsigned test ID token."""
         encoded = base64.urlsafe_b64encode(json.dumps(payload).encode()).decode()
         return f"header.{encoded.rstrip('=')}.signature"

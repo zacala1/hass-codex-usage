@@ -3,25 +3,25 @@
   "config": {
     "step": {
       "user": {
-        "title": "Authenticate with Codex Usage",
-        "description": "To authenticate, [open link]({url}) and sign in with your ChatGPT account.\n\nAfter authorizing, your browser may show a localhost connection error. This is expected. Copy the full URL from the browser address bar and paste it below.",
+        "title": "Connect your ChatGPT account",
+        "description": "[Open the authentication page]({url}) and sign in with the ChatGPT account you want to monitor.\n\nAfter you approve access, the browser may show a localhost connection error. This is expected. Copy the full URL from the address bar and paste it below.",
         "data": {
           "authorization_code": "Authorization code or redirect URL"
         }
       },
       "reauth_confirm": {
-        "title": "Reauthenticate Codex Usage",
-        "description": "Codex Usage needs to reauthenticate your ChatGPT account.\n\n[open link]({url}) and sign in again. After authorizing, your browser may show a localhost connection error. This is expected. Copy the full URL from the browser address bar and paste it below.",
+        "title": "Reconnect your ChatGPT account",
+        "description": "Your ChatGPT account needs to be authenticated again.\n\n[Open the authentication page]({url}) and sign in again. After you approve access, the browser may show a localhost connection error. This is expected. Copy the full URL from the address bar and paste it below.",
         "data": {
           "authorization_code": "Authorization code or redirect URL"
         }
       }
     },
     "error": {
-      "cannot_connect": "Unable to connect to OpenAI.",
-      "invalid_auth": "OpenAI rejected the authorization code.",
+      "cannot_connect": "Could not connect to OpenAI. Try again in a few moments.",
+      "invalid_auth": "The authorization code was rejected or has expired. Open the authentication page again and try again.",
       "missing_code": "Enter the authorization code or redirect URL.",
-      "unknown": "Unexpected error"
+      "unknown": "An unexpected error occurred. Try again."
     },
     "abort": {
       "already_configured": "This ChatGPT account is already configured.",
@@ -31,7 +31,7 @@
   "options": {
     "step": {
       "init": {
-        "title": "Codex Usage options",
+        "title": "Codex Usage settings",
         "data": {
           "update_interval": "Update interval in seconds"
         }
@@ -41,40 +41,43 @@
   "entity": {
     "sensor": {
       "session_usage_remaining": {
-        "name": "Session remaining"
+        "name": "Session usage remaining"
       },
       "session_reset_time": {
-        "name": "Session reset time"
+        "name": "Session limit reset time"
       },
       "weekly_usage_remaining": {
-        "name": "Weekly remaining"
+        "name": "Weekly usage remaining"
       },
       "weekly_reset_time": {
-        "name": "Weekly reset time"
+        "name": "Weekly limit reset time"
       },
       "plan": {
-        "name": "Plan"
+        "name": "Subscription plan"
       },
       "code_review_usage_remaining": {
-        "name": "Code review remaining"
+        "name": "Code review usage remaining"
       },
       "code_review_reset_time": {
-        "name": "Code review reset time"
+        "name": "Code review limit reset time"
       },
       "extra_usage_remaining": {
         "name": "Extra usage remaining"
       },
       "extra_usage_reset_time": {
-        "name": "Extra usage reset time"
+        "name": "Extra usage limit reset time"
       },
       "extra_usage_balance": {
-        "name": "Extra usage balance"
+        "name": "Extra credit balance"
       },
       "extra_usage_used": {
-        "name": "Extra usage used"
+        "name": "Extra credits used"
       },
       "extra_usage_limit": {
-        "name": "Extra usage limit"
+        "name": "Extra credit limit"
+      },
+      "rate_limit_reset_credits_available": {
+        "name": "Available rate limit reset credits"
       }
     }
   }

@@ -54,6 +54,16 @@ class DocumentationTest(unittest.TestCase):
         self.assertIn("`v<manifest version>`", readme)
         self.assertNotIn("v0.3.0", normalized)
 
+    def test_english_copy_and_current_fixed_fields_are_documented(self) -> None:
+        """Keep public English natural and document current fixed coverage."""
+        readme = README_PATH.read_text(encoding="utf-8")
+
+        self.assertNotIn("offered update", readme)
+        self.assertNotIn("English and 한국어", readme)
+        self.assertNotIn("The integration identifies the approximately", readme)
+        self.assertIn("rate-limit reset credits", readme.lower())
+        self.assertIn("`rate_limit_reached_type`", readme)
+
 
 if __name__ == "__main__":
     unittest.main()

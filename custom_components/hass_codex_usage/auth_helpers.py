@@ -25,6 +25,8 @@ OPENAI_AUTH_EXTRA_PARAMS = {
     "codex_cli_simplified_flow": "true",
     "originator": "codex_cli_rs",
 }
+OPENAI_PROFILE_CLAIM = "https://api.openai.com/profile"
+OPENAI_AUTH_CLAIM = "https://api.openai.com/auth"
 TOKEN_REFRESH_MARGIN_SECONDS = 300
 ACCOUNT_ID_UNIQUE_ID_PREFIX = "account:"
 
@@ -103,6 +105,22 @@ def normalize_token(
     elif previous_token.get("account_id"):
         normalized["account_id"] = previous_token["account_id"]
 
+    chatgpt_user_id = chatgpt_user_id_from_id_token(normalized.get("id_token"))
+    if chatgpt_user_id:
+        normalized["chatgpt_user_id"] = chatgpt_user_id
+    elif previous_token.get("chatgpt_user_id"):
+        normalized["chatgpt_user_id"] = previous_token["chatgpt_user_id"]
+
+    is_fedramp = chatgpt_account_is_fedramp_from_id_token(
+        normalized.get("id_token")
+    )
+    if is_fedramp is not None:
+        normalized["chatgpt_account_is_fedramp"] = is_fedramp
+    elif isinstance(previous_token.get("chatgpt_account_is_fedramp"), bool):
+        normalized["chatgpt_account_is_fedramp"] = previous_token[
+            "chatgpt_account_is_fedramp"
+        ]
+
     return normalized
 
 
@@ -179,21 +197,67 @@ def email_from_id_token(id_token: Any) -> str | None:
     if claims is None:
         return None
 
-    email = claims.get("email")
-    return normalize_account_email(email)
+    email = normalize_account_email(claims.get("email"))
+    if email:
+        return email
+    profile = _claim_mapping(claims, OPENAI_PROFILE_CLAIM)
+    return normalize_account_email(profile.get("email")) if profile else None
 
 
 def account_id_from_id_token(id_token: Any) -> str | None:
-    """Extract a stable opaque account ID from an ID token."""
+    """Extract the selected ChatGPT workspace ID from an ID token."""
     claims = id_token_claims(id_token)
     if claims is None:
         return None
 
-    for field in ("sub", "account_id", "user_id"):
-        account_id = normalize_identifier(claims.get(field))
-        if account_id:
-            return account_id
-    return None
+    auth = _claim_mapping(claims, OPENAI_AUTH_CLAIM)
+    return (
+        normalize_identifier(auth.get("chatgpt_account_id")) if auth else None
+    )
+
+
+def chatgpt_user_id_from_id_token(id_token: Any) -> str | None:
+    """Extract the ChatGPT user ID without treating it as a workspace ID."""
+    claims = id_token_claims(id_token)
+    if claims is None:
+        return None
+
+    auth = _claim_mapping(claims, OPENAI_AUTH_CLAIM)
+    if auth is None:
+        return None
+    return normalize_identifier(auth.get("chatgpt_user_id")) or normalize_identifier(
+        auth.get("user_id")
+    )
+
+
+def chatgpt_account_is_fedramp_from_id_token(id_token: Any) -> bool | None:
+    """Extract the selected workspace's FedRAMP routing flag."""
+    claims = id_token_claims(id_token)
+    if claims is None:
+        return None
+
+    auth = _claim_mapping(claims, OPENAI_AUTH_CLAIM)
+    if auth is None:
+        return False
+    value = auth.get("chatgpt_account_is_fedramp", False)
+    return value if isinstance(value, bool) else None
+
+
+def chatgpt_request_headers(token: dict[str, Any]) -> dict[str, str]:
+    """Return current ChatGPT workspace-routing headers for a token."""
+    headers: dict[str, str] = {}
+    account_id = normalize_identifier(token.get("account_id")) or account_id_from_id_token(
+        token.get("id_token")
+    )
+    if account_id:
+        headers["ChatGPT-Account-ID"] = account_id
+
+    is_fedramp = token.get("chatgpt_account_is_fedramp")
+    if not isinstance(is_fedramp, bool):
+        is_fedramp = chatgpt_account_is_fedramp_from_id_token(token.get("id_token"))
+    if is_fedramp is True:
+        headers["X-OpenAI-Fedramp"] = "true"
+    return headers
 
 
 def id_token_claims(id_token: Any) -> dict[str, Any] | None:
@@ -214,3 +278,10 @@ def id_token_claims(id_token: Any) -> dict[str, Any] | None:
         return None
 
     return claims if isinstance(claims, dict) else None
+
+
+def _claim_mapping(
+    claims: dict[str, Any], claim_name: str
+) -> dict[str, Any] | None:
+    value = claims.get(claim_name)
+    return value if isinstance(value, dict) else None

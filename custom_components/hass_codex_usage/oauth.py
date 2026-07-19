@@ -95,6 +95,7 @@ async def async_refresh_entry_token(
             "refresh_token": refresh_token,
         },
         previous_token=token,
+        json_encoded=True,
     )
 
     new_data = {**entry.data, CONF_TOKEN: new_token}
@@ -107,13 +108,24 @@ async def _async_request_token(
     payload: dict[str, Any],
     *,
     previous_token: dict[str, Any] | None = None,
+    json_encoded: bool = False,
 ) -> dict[str, Any]:
     """Request a token from the OAuth token endpoint."""
+    request_kwargs: dict[str, Any]
+    if json_encoded:
+        request_kwargs = {
+            "json": payload,
+            "headers": {"Content-Type": "application/json"},
+        }
+    else:
+        request_kwargs = {
+            "data": payload,
+            "headers": {"Content-Type": "application/x-www-form-urlencoded"},
+        }
     try:
         async with session.post(
             OPENAI_TOKEN_URL,
-            data=payload,
-            headers={"Content-Type": "application/x-www-form-urlencoded"},
+            **request_kwargs,
         ) as response:
             if response.status in {400, 401, 403}:
                 raise CodexUsageAuthError("OpenAI rejected the OAuth request")

@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from collections.abc import Mapping
 import importlib.util
+import json
 from pathlib import Path
 import sys
 import types
@@ -224,6 +225,17 @@ class NetworkContractTest(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(kwargs["json"]["refresh_token"], "refresh")
         self.assertNotIn("data", kwargs)
         self.assertEqual(kwargs["headers"]["Content-Type"], "application/json")
+
+    async def test_invalid_token_json_is_reported_as_connection_error(self) -> None:
+        """Convert a malformed token response into the expected flow error."""
+        response = FakeResponse({})
+        response.json = mock.AsyncMock(
+            side_effect=json.JSONDecodeError("invalid JSON", "response", 0)
+        )
+        session = FakeSession([response])
+
+        with self.assertRaises(OAUTH.CodexUsageConnectionError):
+            await OAUTH.async_exchange_code_for_token(session, "code", "verifier")
 
     async def test_usage_requests_include_account_routing_and_reset_details(self) -> None:
         # Given: a FedRAMP account with available rate-limit reset credits.

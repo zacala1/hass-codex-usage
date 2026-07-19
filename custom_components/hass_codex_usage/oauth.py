@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 from typing import Any
 
 from aiohttp import ClientError, ClientResponseError, ClientSession
@@ -139,6 +140,8 @@ async def _async_request_token(
         ) from err
     except ClientError as err:
         raise CodexUsageConnectionError("OpenAI token request failed") from err
+    except (json.JSONDecodeError, UnicodeDecodeError) as err:
+        raise CodexUsageConnectionError("OpenAI token response was not valid JSON") from err
 
     if not isinstance(token, dict) or CONF_ACCESS_TOKEN not in token:
         raise CodexUsageAuthError("OpenAI token response did not include access_token")

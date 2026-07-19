@@ -135,8 +135,6 @@ class CodexUsageConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             errors["base"] = "invalid_auth"
         except CodexUsageConnectionError:
             errors["base"] = "cannot_connect"
-        except Exception:  # noqa: BLE001
-            errors["base"] = "unknown"
 
         return None
 

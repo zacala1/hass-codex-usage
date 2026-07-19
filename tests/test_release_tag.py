@@ -61,8 +61,8 @@ class ReleaseTagTest(unittest.TestCase):
         self.assertFalse(check_release_tag.release_is_prerelease("0.3.2"))
         self.assertFalse(check_release_tag.release_is_prerelease("previewb1"))
 
-    def test_github_output_reports_current_beta_release_type(self) -> None:
-        """Expose release type for the GitHub release publishing action."""
+    def test_github_output_reports_current_stable_release_type(self) -> None:
+        """Expose the current stable type for the publishing action."""
         manifest = json.loads(MANIFEST_PATH.read_text(encoding="utf-8"))
         accepted_tag = f"v{manifest['version']}"
 
@@ -86,7 +86,7 @@ class ReleaseTagTest(unittest.TestCase):
             self.assertEqual(completed.returncode, 0, completed.stderr)
             self.assertEqual(
                 output_path.read_text(encoding="utf-8"),
-                "prerelease=true\n",
+                "prerelease=false\n",
             )
 
     def test_release_workflow_preserves_the_beta_channel(self) -> None:

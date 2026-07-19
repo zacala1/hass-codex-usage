@@ -41,7 +41,7 @@ class DocumentationTest(unittest.TestCase):
 
     def test_localized_update_and_release_guidance_is_current(self) -> None:
         """Keep Korean support, HACS refresh, and release tags current."""
-        # Given: the public README after the v0.3.1 behavior update.
+        # Given: the public README for the current stable release.
         readme = README_PATH.read_text(encoding="utf-8")
 
         # When: user and maintainer guidance is inspected.
@@ -54,6 +54,7 @@ class DocumentationTest(unittest.TestCase):
         self.assertIn("restart Home Assistant", readme)
         self.assertIn("`v<manifest version>`", readme)
         self.assertNotIn("v0.3.0", normalized)
+        self.assertNotIn("0.3.2b2", normalized)
 
     def test_english_copy_and_current_fixed_fields_are_documented(self) -> None:
         """Keep public English natural and document current fixed coverage."""

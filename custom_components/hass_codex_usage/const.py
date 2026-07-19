@@ -4,7 +4,7 @@ from __future__ import annotations
 
 DOMAIN = "hass_codex_usage"
 DEFAULT_NAME = "Codex Usage"
-VERSION = "0.3.2"
+VERSION = "0.3.2b1"
 
 CONF_AUTHORIZATION_CODE = "authorization_code"
 CONF_REFRESH_TOKEN = "refresh_token"

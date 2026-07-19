@@ -54,6 +54,10 @@ jobs:
         with:
           python-version: "3.13"
 
+      - name: Classify release
+        id: release_metadata
+        run: python scripts/check_release_tag.py --github-output
+
       - name: Build integration artifact
         run: python scripts/build_release.py --output release/hass_codex_usage.zip
 
@@ -62,3 +66,4 @@ jobs:
         with:
           files: release/hass_codex_usage.zip
           generate_release_notes: true
+          prerelease: ${{ steps.release_metadata.outputs.prerelease }}

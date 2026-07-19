@@ -64,6 +64,14 @@ class DocumentationTest(unittest.TestCase):
         self.assertIn("rate-limit reset credits", readme.lower())
         self.assertIn("`rate_limit_reached_type`", readme)
 
+    def test_hacs_prerelease_opt_in_is_documented(self) -> None:
+        """Explain the opt-in beta channel in both supported languages."""
+        readme = README_PATH.read_text(encoding="utf-8")
+
+        self.assertIn("HACS 프리릴리스 스위치", readme)
+        self.assertIn("HACS pre-release switch", readme)
+        self.assertIn("`v<base version>b<number>`", readme)
+
 
 if __name__ == "__main__":
     unittest.main()

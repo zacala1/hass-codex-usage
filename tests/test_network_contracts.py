@@ -11,10 +11,25 @@ from typing import Any
 import unittest
 from unittest import mock
 
-from aiohttp import ClientResponseError
-
 ROOT = Path(__file__).resolve().parents[1]
 INTEGRATION_DIR = ROOT / "custom_components" / "hass_codex_usage"
+
+
+class StubClientError(Exception):
+    """Minimal aiohttp base error for dependency-free contract tests."""
+
+
+class StubClientResponseError(StubClientError):
+    """Minimal response error carrying the HTTP status used by runtime code."""
+
+    def __init__(self, status: int) -> None:
+        """Store the failing response status."""
+        super().__init__(f"HTTP {status}")
+        self.status = status
+
+
+class StubClientSession:
+    """Minimal aiohttp session type used only by runtime annotations."""
 
 
 class StubDataUpdateCoordinator:
@@ -73,9 +88,14 @@ def _load_runtime_modules() -> tuple[types.ModuleType, types.ModuleType]:
     dt = types.ModuleType("homeassistant.util.dt")
     dt.utcnow = lambda: None
     util.dt = dt
+    aiohttp = types.ModuleType("aiohttp")
+    aiohttp.ClientError = StubClientError
+    aiohttp.ClientResponseError = StubClientResponseError
+    aiohttp.ClientSession = StubClientSession
 
     stub_modules = {
         package_name: package,
+        "aiohttp": aiohttp,
         "homeassistant": homeassistant,
         "homeassistant.config_entries": config_entries,
         "homeassistant.const": ha_const,
@@ -131,7 +151,7 @@ class FakeResponse:
 
     def raise_for_status(self) -> None:
         if self.status >= 400:
-            raise ClientResponseError(None, (), status=self.status)
+            raise StubClientResponseError(self.status)
 
     async def json(self, *, content_type: None = None) -> Any:
         return self.payload

@@ -16,9 +16,11 @@ from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import PERCENTAGE
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers import device_registry as dr
+from homeassistant.helpers import entity_registry as er
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
+from .availability import registry_disabled_by, supported_sensor_keys
 from .const import CODEX_USAGE_ENDPOINT_LABEL, DOMAIN, VERSION
 from .coordinator import CodexUsageCoordinator
 from .usage import (
@@ -132,9 +134,7 @@ SENSOR_DESCRIPTIONS: tuple[CodexUsageSensorDescription, ...] = (
         translation_key="rate_limit_reset_credits_available",
         native_unit_of_measurement="credits",
         state_class=SensorStateClass.MEASUREMENT,
-        value_fn=lambda data: sensor_value(
-            data, RATE_LIMIT_RESET_CREDITS_AVAILABLE
-        ),
+        value_fn=lambda data: sensor_value(data, RATE_LIMIT_RESET_CREDITS_AVAILABLE),
     ),
 )
 
@@ -152,6 +152,24 @@ async def async_setup_entry(
 ) -> None:
     """Set up Codex Usage sensors from a config entry."""
     coordinator: CodexUsageCoordinator = hass.data[DOMAIN][entry.entry_id]
+    supported_keys = supported_sensor_keys(coordinator.data or {})
+    registry = er.async_get(hass)
+    for description in SENSOR_DESCRIPTIONS:
+        unique_id = f"{entry.entry_id}_{description.key}"
+        entity_id = registry.async_get_entity_id("sensor", DOMAIN, unique_id)
+        if entity_id is None:
+            continue
+        registry_entry = registry.async_get(entity_id)
+        if registry_entry is None:
+            continue
+        disabled_by = registry_disabled_by(
+            description.key in supported_keys,
+            registry_entry.disabled_by,
+            er.RegistryEntryDisabler.INTEGRATION,
+        )
+        if disabled_by != registry_entry.disabled_by:
+            registry.async_update_entity(entity_id, disabled_by=disabled_by)
+
     async_add_entities(
         CodexUsageSensor(coordinator, entry, description)
         for description in SENSOR_DESCRIPTIONS
@@ -183,6 +201,13 @@ class CodexUsageSensor(CoordinatorEntity[CodexUsageCoordinator], SensorEntity):
         }
 
     @property
+    def entity_registry_enabled_default(self) -> bool:
+        """Enable new entities only when the account returns their feature."""
+        return self.entity_description.key in supported_sensor_keys(
+            self.coordinator.data or {}
+        )
+
+    @property
     def native_value(self) -> Any:
         """Return the state of the sensor."""
         if self.coordinator.data is None:
@@ -204,9 +229,7 @@ class CodexUsageSensor(CoordinatorEntity[CodexUsageCoordinator], SensorEntity):
             "last_updated": last_updated.isoformat() if last_updated else None,
             "api_endpoint": meta.get("api_endpoint", CODEX_USAGE_ENDPOINT_LABEL),
         }
-        attributes.update(
-            sensor_attributes(data, self.entity_description.key)
-        )
+        attributes.update(sensor_attributes(data, self.entity_description.key))
         if self.entity_description.key == RATE_LIMIT_RESET_CREDITS_AVAILABLE:
             reset_credit_details = meta.get("rate_limit_reset_credits")
             if isinstance(reset_credit_details, dict):

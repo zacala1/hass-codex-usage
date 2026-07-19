@@ -16,6 +16,7 @@ ZIP_TIMESTAMP = (1980, 1, 1, 0, 0, 0)
 ZIP_FILE_MODE = 0o100644
 REQUIRED_FILES = (
     INTEGRATION_DIR / "__init__.py",
+    INTEGRATION_DIR / "availability.py",
     INTEGRATION_DIR / "auth_helpers.py",
     INTEGRATION_DIR / "config_flow.py",
     INTEGRATION_DIR / "const.py",
@@ -109,7 +110,11 @@ def validate_package_files() -> list[Path]:
                 f"{symlink.relative_to(INTEGRATION_DIR).as_posix()}"
             )
 
-    missing = [path.relative_to(ROOT).as_posix() for path in REQUIRED_FILES if not path.is_file()]
+    missing = [
+        path.relative_to(ROOT).as_posix()
+        for path in REQUIRED_FILES
+        if not path.is_file()
+    ]
     if missing:
         raise ReleasePackageError(f"missing required files: {', '.join(missing)}")
 
@@ -119,9 +124,7 @@ def validate_package_files() -> list[Path]:
     for path in sorted(INTEGRATION_DIR.rglob("*")):
         relative = path.relative_to(INTEGRATION_DIR)
         if path.is_symlink():
-            raise ReleasePackageError(
-                f"refusing symlinked path: {relative.as_posix()}"
-            )
+            raise ReleasePackageError(f"refusing symlinked path: {relative.as_posix()}")
         if not path.is_file():
             continue
         if any(part in EXCLUDED_DIRS for part in relative.parts):

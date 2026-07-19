@@ -25,18 +25,19 @@ class DocumentationTest(unittest.TestCase):
         self.assertIn("five-hour", sensor_section)
         self.assertIn("seven-day", sensor_section)
 
-    def test_unavailable_optional_limits_are_documented(self) -> None:
-        """Explain why optional sensors can legitimately be unavailable."""
+    def test_unsupported_optional_limits_are_documented(self) -> None:
+        """Explain why account-unsupported sensors are disabled."""
         # Given: the public README.
         readme = README_PATH.read_text(encoding="utf-8")
 
         # When: optional-limit guidance is read.
         sensor_section = readme.split("## Sensors", maxsplit=1)[-1]
 
-        # Then: both backend objects and the visible Unknown state are explained.
+        # Then: backend objects and account-specific disabling are explained.
         self.assertIn("`spend_control.individual_limit`", sensor_section)
         self.assertIn("`codex_auto_review`", sensor_section)
-        self.assertIn("Unknown", sensor_section)
+        self.assertIn("disabled by the integration", sensor_section)
+        self.assertIn("reload the integration", sensor_section)
 
     def test_localized_update_and_release_guidance_is_current(self) -> None:
         """Keep Korean support, HACS refresh, and release tags current."""

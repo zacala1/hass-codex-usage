@@ -15,6 +15,7 @@ TRANSLATION_FILES = (
     ROOT / "custom_components" / "hass_codex_usage" / "translations" / "en.json",
     ROOT / "custom_components" / "hass_codex_usage" / "translations" / "ko.json",
 )
+ENGLISH_TRANSLATION_FILES = TRANSLATION_FILES[:2]
 USAGE_PATH = ROOT / "custom_components" / "hass_codex_usage" / "usage.py"
 USAGE_SPEC = importlib.util.spec_from_file_location("translation_usage", USAGE_PATH)
 assert USAGE_SPEC is not None and USAGE_SPEC.loader is not None
@@ -63,12 +64,38 @@ class TranslationTest(unittest.TestCase):
                 )
 
     def test_sensor_translations_match_current_sensor_set(self) -> None:
-        """Keep all translation files on the exact current sensor contract."""
-        for path, data in self._translation_data():
+        """Keep English translation files on the exact current sensor contract."""
+        for path in ENGLISH_TRANSLATION_FILES:
             with self.subTest(path=path.name):
+                data = json.loads(path.read_text(encoding="utf-8"))
                 self.assertEqual(
                     set(data["entity"]["sensor"]), set(usage.SENSOR_KEYS)
                 )
+
+    def test_korean_copy_localizes_setup_but_not_assigned_names(self) -> None:
+        """Keep Korean guidance while entity names fall back to English."""
+        # Given: the Korean custom-integration translation file.
+        korean = json.loads(TRANSLATION_FILES[2].read_text(encoding="utf-8"))
+
+        # When: setup guidance and integration-assigned names are inspected.
+        user_step = korean["config"]["step"]["user"]
+
+        # Then: setup remains Korean and assigned names have no Korean override.
+        self.assertIn("[인증 페이지 열기]({url})", user_step["description"])
+        self.assertIn(
+            "다시 인증",
+            korean["config"]["step"]["reauth_confirm"]["description"],
+        )
+        self.assertIn(
+            "연결할 수 없습니다",
+            korean["config"]["error"]["cannot_connect"],
+        )
+        self.assertEqual(
+            korean["options"]["step"]["init"]["title"],
+            "Codex 사용량 설정",
+        )
+        self.assertEqual(korean["title"], "Codex Usage")
+        self.assertNotIn("entity", korean)
 
     def test_english_copy_is_native_and_unambiguous(self) -> None:
         """Use natural English that names each measured quantity."""

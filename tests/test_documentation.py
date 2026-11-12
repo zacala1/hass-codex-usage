@@ -40,15 +40,17 @@ class DocumentationTest(unittest.TestCase):
         self.assertIn("reload the integration", sensor_section)
 
     def test_localized_update_and_release_guidance_is_current(self) -> None:
-        """Keep Korean support, HACS refresh, and release tags current."""
-        # Given: the public README for the current stable release.
+        """Keep Korean guidance, English names, and release steps current."""
+        # Given: the public README for the current release line.
         readme = README_PATH.read_text(encoding="utf-8")
 
         # When: user and maintainer guidance is inspected.
         normalized = readme.lower()
 
-        # Then: localized UI, full HACS update steps, and generic tags are covered.
+        # Then: localized guidance, English names, and generic tags are covered.
         self.assertIn("한국어", readme)
+        self.assertIn("설정·재인증·오류·옵션 안내", readme)
+        self.assertIn("센서 이름은 영어", readme)
         self.assertIn("**Update information**", readme)
         self.assertIn("Download/Redownload", readme)
         self.assertIn("restart Home Assistant", readme)

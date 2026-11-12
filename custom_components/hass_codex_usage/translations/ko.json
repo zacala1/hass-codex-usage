@@ -1,5 +1,5 @@
 {
-  "title": "Codex 사용량",
+  "title": "Codex Usage",
   "config": {
     "step": {
       "user": {
@@ -35,49 +35,6 @@
         "data": {
           "update_interval": "업데이트 간격(초)"
         }
-      }
-    }
-  },
-  "entity": {
-    "sensor": {
-      "session_usage_remaining": {
-        "name": "세션 잔여 사용량"
-      },
-      "session_reset_time": {
-        "name": "세션 한도 초기화 시각"
-      },
-      "weekly_usage_remaining": {
-        "name": "주간 잔여 사용량"
-      },
-      "weekly_reset_time": {
-        "name": "주간 한도 초기화 시각"
-      },
-      "plan": {
-        "name": "구독 요금제"
-      },
-      "code_review_usage_remaining": {
-        "name": "코드 리뷰 잔여 사용량"
-      },
-      "code_review_reset_time": {
-        "name": "코드 리뷰 한도 초기화 시각"
-      },
-      "extra_usage_remaining": {
-        "name": "추가 사용 가능량"
-      },
-      "extra_usage_reset_time": {
-        "name": "추가 사용 한도 초기화 시각"
-      },
-      "extra_usage_balance": {
-        "name": "추가 크레딧 잔액"
-      },
-      "extra_usage_used": {
-        "name": "사용한 추가 크레딧"
-      },
-      "extra_usage_limit": {
-        "name": "추가 크레딧 한도"
-      },
-      "rate_limit_reset_credits_available": {
-        "name": "사용 가능한 한도 초기화 크레딧"
       }
     }
   }

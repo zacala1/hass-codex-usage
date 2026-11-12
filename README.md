@@ -19,9 +19,11 @@ Requires Home Assistant 2025.12.0 or newer.
 
 ## 한국어 안내
 
-설정 화면, 재인증 안내, 오류 메시지와 센서 이름은 한국어를 지원합니다.
-설치 후 예전 번역이 계속 보이면 Home Assistant를 재시작하세요. 사용자가 직접
-변경한 엔티티 이름은 새 번역으로 자동 변경되지 않을 수 있습니다.
+설정·재인증·오류·옵션 안내는 한국어를 지원합니다. 센서 이름은 영어로
+표시하며, 통합이 부여하는 기타 표시 이름도 모든 언어에서 영어를 사용합니다.
+업데이트 후 예전 한국어 센서 이름이 계속 보이면 Home Assistant를
+재시작하세요. 사용자가 직접 변경한 엔티티 이름은 자동으로 바뀌지 않을 수
+있습니다.
 
 HACS에서 업데이트할 때는 저장소 메뉴의 **Update information**으로 새 버전
 정보를 불러온 뒤 **Download/Redownload**를 선택하고 Home Assistant를
@@ -113,8 +115,10 @@ setup again and use the new authorization link.
 
 If Home Assistant shows a translation placeholder error after updating the
 integration, restart Home Assistant so it reloads the integration translations.
-The integration provides English and Korean UI translations. Home Assistant may
-preserve entity names that the user customized manually.
+Setup, reauthentication, errors, and options provide Korean translations. Sensor
+names and other integration-assigned display names remain English in every
+language. Home Assistant may preserve entity names that the user customized
+manually.
 
 ## Sensors
 

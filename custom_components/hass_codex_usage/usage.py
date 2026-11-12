@@ -149,7 +149,8 @@ def parse_timestamp(value: Any) -> datetime | None:
         return None
     if isinstance(value, (int, float)):
         number = _number(value)
-        if number is None:
+        # Zero or negative values are placeholders, not real reset times.
+        if number is None or number <= 0:
             return None
         try:
             return datetime.fromtimestamp(number, tz=timezone.utc)

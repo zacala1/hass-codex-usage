@@ -57,10 +57,7 @@ class UsageParsingTest(unittest.TestCase):
         self.assertEqual(
             usage.sensor_value(payload, usage.WEEKLY_USAGE_REMAINING), 46
         )
-        self.assertEqual(
-            usage.sensor_value(payload, usage.SESSION_RESET_TIME).isoformat(),
-            "1970-01-01T00:00:00+00:00",
-        )
+        self.assertIsNone(usage.sensor_value(payload, usage.SESSION_RESET_TIME))
         self.assertEqual(
             usage.sensor_attributes(payload, usage.SESSION_USAGE_REMAINING),
             {
@@ -269,7 +266,10 @@ class UsageParsingTest(unittest.TestCase):
         )
 
     def test_parse_timestamp(self) -> None:
-        self.assertEqual(usage.parse_timestamp(0).tzinfo, timezone.utc)
+        self.assertEqual(usage.parse_timestamp(1784937600).tzinfo, timezone.utc)
+        self.assertIsNone(usage.parse_timestamp(0))
+        self.assertIsNone(usage.parse_timestamp(-1))
+        self.assertIsNone(usage.parse_timestamp(0.0))
         self.assertIsNone(usage.parse_timestamp(""))
         self.assertIsNone(usage.parse_timestamp("2026-07-18T15:30:00Z"))
         self.assertIsNone(usage.parse_timestamp(True))

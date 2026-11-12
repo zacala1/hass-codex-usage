@@ -95,6 +95,20 @@ SENSITIVE_TRACKED_PATTERNS = (
 )
 VERSION_RE = re.compile(r'^VERSION = "([^"]+)"$')
 HA_VERSION_RE = re.compile(r"^\d{4}\.\d{1,2}\.\d+(?:b\d+)?$")
+# CI/CD automation was removed by owner decision; see AGENTS.md.
+FORBIDDEN_CI_PATHS = (
+    ".github/workflows",
+    ".github/dependabot.yml",
+    ".github/dependabot.yaml",
+    "renovate.json",
+    ".renovaterc",
+    ".renovaterc.json",
+    ".gitlab-ci.yml",
+    ".circleci",
+    ".travis.yml",
+    "azure-pipelines.yml",
+    "Jenkinsfile",
+)
 
 
 def check_repository_metadata(json_data: dict[Path, dict[str, Any]]) -> list[str]:
@@ -199,3 +213,12 @@ def check_homeassistant_imports() -> list[str]:
         sys.path[:] = original_path
 
     return failures
+
+
+def check_no_ci_config() -> list[str]:
+    """Fail when CI/CD automation is reintroduced."""
+    return [
+        f"CI/CD config is not allowed (see AGENTS.md): {relative}"
+        for relative in FORBIDDEN_CI_PATHS
+        if (ROOT / relative).exists()
+    ]

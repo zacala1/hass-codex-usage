@@ -19,6 +19,7 @@ from validation_checks import (  # noqa: E402
     JSON_FILES,
     ROOT,
     check_homeassistant_imports,
+    check_no_ci_config,
     check_repository_metadata,
     integration_version as integration_version,
 )
@@ -71,6 +72,9 @@ def main() -> int:
 
     print("Checking optional Home Assistant imports...")
     failures.extend(check_homeassistant_imports())
+
+    print("Checking that CI/CD automation is absent...")
+    failures.extend(check_no_ci_config())
 
     print("Checking git diff whitespace...")
     diff_check = subprocess.run(

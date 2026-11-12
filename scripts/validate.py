@@ -20,7 +20,6 @@ from validation_checks import (  # noqa: E402
     ROOT,
     check_homeassistant_imports,
     check_repository_metadata,
-    check_workflows,
     integration_version as integration_version,
 )
 
@@ -72,9 +71,6 @@ def main() -> int:
 
     print("Checking optional Home Assistant imports...")
     failures.extend(check_homeassistant_imports())
-
-    print("Checking GitHub workflows...")
-    failures.extend(check_workflows())
 
     print("Checking git diff whitespace...")
     diff_check = subprocess.run(

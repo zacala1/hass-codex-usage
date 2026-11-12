@@ -5,7 +5,6 @@ from __future__ import annotations
 import importlib.util
 import json
 import os
-import re
 import tempfile
 import unittest
 import zipfile
@@ -209,76 +208,6 @@ class DeploymentTest(unittest.TestCase):
             "account_id",
         ):
             self.assertIn(f'"{key}"', diagnostics_text)
-
-    def test_release_workflow_runs_validation_before_packaging(self) -> None:
-        """Avoid publishing a release artifact that skipped local validation."""
-        self.assertEqual(validate.check_workflows(), [])
-
-        release_text = (
-            ROOT / ".github" / "workflows" / "release.yml"
-        ).read_text(encoding="utf-8")
-        required_steps = (
-            "python scripts/validate.py",
-            "python scripts/check_release_tag.py",
-            "home-assistant/actions/hassfest@",
-            "hacs/action@",
-            "python scripts/build_release.py",
-            "softprops/action-gh-release@",
-        )
-        positions = [release_text.index(step) for step in required_steps]
-        self.assertEqual(positions, sorted(positions))
-
-    def test_release_write_permission_is_limited_to_publish_job(self) -> None:
-        """Grant release write access only after every validation job passes."""
-        release_text = (
-            ROOT / ".github" / "workflows" / "release.yml"
-        ).read_text(encoding="utf-8")
-
-        self.assertRegex(release_text, r"(?m)^permissions:\s*\n\s+contents: read$")
-        self.assertRegex(
-            release_text,
-            r"(?ms)^  release:\n.*?^    needs: validate$.*?"
-            r"^    permissions:\n      contents: write$",
-        )
-
-    def test_workflow_actions_are_pinned_to_commits(self) -> None:
-        """Use immutable action revisions in validation and release workflows."""
-        for workflow in ("release.yml", "validate.yml"):
-            workflow_text = (
-                ROOT / ".github" / "workflows" / workflow
-            ).read_text(encoding="utf-8")
-            action_refs = re.findall(
-                r"^\s*uses:\s*[^@\s]+@([^\s#]+)",
-                workflow_text,
-                re.MULTILINE,
-            )
-
-            self.assertTrue(action_refs, workflow)
-            for revision in action_refs:
-                self.assertRegex(revision, r"^[0-9a-f]{40}$", workflow)
-
-            checkout_count = workflow_text.count("uses: actions/checkout@")
-            self.assertEqual(
-                workflow_text.count("persist-credentials: false"),
-                checkout_count,
-                workflow,
-            )
-
-    def test_validation_workflow_has_read_only_permissions(self) -> None:
-        """Keep validation jobs on the least-privileged token permission."""
-        workflow_text = (
-            ROOT / ".github" / "workflows" / "validate.yml"
-        ).read_text(encoding="utf-8")
-
-        self.assertRegex(workflow_text, r"(?m)^permissions:\s*\n\s+contents: read$")
-
-    def test_dependabot_tracks_action_commit_updates(self) -> None:
-        """Retain automated update visibility after pinning action SHAs."""
-        dependabot_text = (
-            ROOT / ".github" / "dependabot.yml"
-        ).read_text(encoding="utf-8")
-
-        self.assertIn('package-ecosystem: "github-actions"', dependabot_text)
 
     def test_readme_manual_install_matches_archive_layout(self) -> None:
         """Describe extracting the root-level archive contents to the domain folder."""

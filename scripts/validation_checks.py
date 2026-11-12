@@ -199,23 +199,3 @@ def check_homeassistant_imports() -> list[str]:
         sys.path[:] = original_path
 
     return failures
-
-
-def check_workflows() -> list[str]:
-    """Validate deployment workflow guardrails."""
-    release_workflow = ROOT / ".github" / "workflows" / "release.yml"
-    try:
-        release_text = release_workflow.read_text(encoding="utf-8")
-    except OSError as err:
-        return [f"release workflow missing or unreadable: {err}"]
-
-    failures: list[str] = []
-    if "tags:" not in release_text or '"v*"' not in release_text:
-        failures.append("release workflow must run for v* tags")
-    if "python scripts/validate.py" not in release_text:
-        failures.append("release workflow must run local validation before packaging")
-    if "python scripts/build_release.py" not in release_text:
-        failures.append("release workflow must build the release package")
-    if "softprops/action-gh-release" not in release_text:
-        failures.append("release workflow must create a GitHub release")
-    return failures

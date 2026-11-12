@@ -1,7 +1,6 @@
 # hass-codex-usage
 
 [![Latest release](https://img.shields.io/github/v/release/zacala1/hass-codex-usage)](https://github.com/zacala1/hass-codex-usage/releases/latest)
-[![Validate](https://github.com/zacala1/hass-codex-usage/actions/workflows/validate.yml/badge.svg)](https://github.com/zacala1/hass-codex-usage/actions/workflows/validate.yml)
 
 Home Assistant custom integration for showing ChatGPT Codex subscription usage
 limits as sensor entities.
@@ -200,17 +199,25 @@ python scripts/build_release.py --check
 python scripts/build_release.py
 ```
 
-Before publishing a release, run validation, push `main`, then create and push a
-version tag named `v<manifest version>`. Do not reuse a version that was already
-published. The tag must match both `manifest.json` and `const.py`. The release
-workflow reruns local validation, tag validation, hassfest, and HACS validation
-before it builds and attaches `hass_codex_usage.zip` to the GitHub release.
+Releases are published by hand; the repository has no CI. Do not reuse a version
+that was already published. The version in `manifest.json` and `const.py` must
+match, and the tag is named `v<manifest version>`. Because `hacs.json` enables
+`zip_release`, every GitHub release must have `hass_codex_usage.zip` attached or
+HACS cannot install it.
+
+```bash
+python scripts/validate.py
+python scripts/build_release.py
+python scripts/check_release_tag.py v<manifest version>
+git tag v<manifest version>
+git push origin main v<manifest version>
+gh release create v<manifest version> dist/hass_codex_usage.zip --generate-notes
+```
 
 For a beta release, append a PEP 440 beta suffix to the next unreleased version
-in the manifest and `const.py`, then use the matching
-`v<base version>b<number>` tag. The workflow marks that release as a
-prerelease. For a stable release, remove the prerelease suffix and push the
-matching `v<manifest version>` tag. Beta and stable tags are separate immutable
+in the manifest and `const.py`, use the matching `v<base version>b<number>` tag,
+and add `--prerelease` to `gh release create`. For a stable release, remove the
+prerelease suffix and omit that flag. Beta and stable tags are separate immutable
 versions.
 
 After publication, verify that a stable release is marked Latest or that a beta

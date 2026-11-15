@@ -97,6 +97,24 @@ class TranslationTest(unittest.TestCase):
         self.assertEqual(korean["title"], "Codex Usage")
         self.assertNotIn("entity", korean)
 
+    def test_non_english_files_only_localize_setup_copy(self) -> None:
+        """Keep entity and other assigned names English in every language."""
+        # Given: every translation file except the English base.
+        localized = sorted(
+            path
+            for path in (ROOT / "custom_components" / "hass_codex_usage" / "translations").glob("*.json")
+            if path.name != "en.json"
+        )
+
+        # When: their top-level sections are inspected.
+        self.assertTrue(localized)
+        for path in localized:
+            with self.subTest(path=path.name):
+                data = json.loads(path.read_text(encoding="utf-8"))
+
+                # Then: only setup, reauthentication, errors, and options remain.
+                self.assertLessEqual(set(data), {"title", "config", "options"})
+
     def test_english_copy_is_native_and_unambiguous(self) -> None:
         """Use natural English that names each measured quantity."""
         strings = json.loads(TRANSLATION_FILES[0].read_text(encoding="utf-8"))

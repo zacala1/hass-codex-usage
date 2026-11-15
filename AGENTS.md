@@ -44,6 +44,17 @@ removed.
 - Never reuse a published version, and never modify or delete existing tags or
   releases.
 
+## Localization (owner decision)
+
+Only setup, reauthentication, error, and options copy is localized. Entity
+names and every other integration-assigned display name stay English in all
+languages because mixed-language names were confusing.
+
+- Never add an `entity` section, or any section other than `title`, `config`,
+  and `options`, to a non-English file in `custom_components/hass_codex_usage/translations/`.
+- Do not add entity-name translations for Korean or any other language.
+- `tests/test_translations.py` enforces this.
+
 ## Pull requests and branches
 
 Work directly on `main` with small, focused commits. Do not open pull requests
